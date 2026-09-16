@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>物種｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/products.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" href="/members">會員</a>
+        <a id="nav-branches" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" href="/coupons">優惠券</a>
+        <a id="nav-products" class="active" href="/products">物種</a>
+        <a id="nav-mice" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>物種</h2>
+          <button id="product-category-open-btn" type="button" onclick="document.getElementById('product-category-modal').classList.remove('hidden')">新增分類</button>
+        </div>
+        <div id="product-groups">
+          <div class="panel">
+            <p class="empty">尚無分類</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="product-category-modal" class="modal-backdrop hidden">
+      <form class="modal" id="product-category-form">
+        <h3 id="product-category-modal-title">新增分類</h3>
+        <label for="product-category-name">名稱</label>
+        <input id="product-category-name" name="name" required />
+        <label for="product-category-description">說明</label>
+        <textarea id="product-category-description" name="description" placeholder="分類說明"></textarea>
+        <label class="check">
+          <input id="product-category-enabled" name="enabled" type="checkbox" checked />
+          啟用
+        </label>
+        <p class="error" id="product-category-error"></p>
+        <div class="modal-actions">
+          <button class="danger ghost hidden" id="product-category-delete-btn" type="button">刪除</button>
+          <span class="modal-actions-spacer"></span>
+          <button class="ghost" id="product-category-cancel-btn" type="button" onclick="document.getElementById('product-category-modal').classList.add('hidden')">取消</button>
+          <button type="submit" id="product-category-submit-btn">新增</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="product-modal" class="modal-backdrop hidden">
+      <form class="modal" id="product-form">
+        <h3 id="product-modal-title">新增物種</h3>
+        <input id="product-category" name="categoryId" type="hidden" />
+        <p class="hint" id="product-category-label"></p>
+        <label for="product-name">名稱</label>
+        <input id="product-name" name="name" required />
+        <label for="product-description">說明</label>
+        <textarea id="product-description" name="description" placeholder="物種說明"></textarea>
+        <label class="check">
+          <input id="product-enabled" name="enabled" type="checkbox" checked />
+          啟用
+        </label>
+        <p class="error" id="product-error"></p>
+        <div class="modal-actions">
+          <button class="danger ghost hidden" id="product-delete-btn" type="button">刪除</button>
+          <span class="modal-actions-spacer"></span>
+          <button class="ghost" id="product-cancel-btn" type="button" onclick="document.getElementById('product-modal').classList.add('hidden')">取消</button>
+          <button type="submit" id="product-submit-btn">新增</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+        ["product-category-modal", "product-modal"].forEach(function (id) {
+          var modal = document.getElementById(id);
+          if (modal && !modal.classList.contains("hidden")) modal.classList.add("hidden");
+        });
+      });
+    </script>
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/products.js"></script>
+  </body>
+</html>

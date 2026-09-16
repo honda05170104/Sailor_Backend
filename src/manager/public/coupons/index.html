@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>優惠券｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/shared/shared.css" />
+    <link rel="stylesheet" href="/coupons/coupons.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" href="/members">會員</a>
+        <a id="nav-branches" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" class="active" href="/coupons">優惠券</a>
+        <a id="nav-products" href="/products">物種</a>
+        <a id="nav-mice" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>優惠券</h2>
+          <button id="coupon-open-btn" type="button" onclick="document.getElementById('coupon-modal').classList.remove('hidden')">新增</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>名稱</th>
+                <th>類型</th>
+                <th>面額</th>
+                <th>低消</th>
+                <th>狀態</th>
+                <th>說明</th>
+              </tr>
+            </thead>
+            <tbody id="coupon-rows">
+              <tr>
+                <td colspan="6" class="empty">尚無優惠券</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="coupon-modal" class="modal-backdrop hidden">
+      <form class="modal" id="coupon-form">
+        <h3 id="coupon-modal-title">新增優惠券</h3>
+        <label for="coupon-name">名稱</label>
+        <input id="coupon-name" name="name" required />
+        <label for="coupon-type">類型</label>
+        <select id="coupon-type" name="type" required>
+          <option value="amount">折抵金額</option>
+          <option value="percent">折扣 %</option>
+        </select>
+        <label for="coupon-value">面額</label>
+        <input id="coupon-value" name="value" type="number" min="0" step="1" required />
+        <label for="coupon-min-spend">低消</label>
+        <input id="coupon-min-spend" name="minSpend" type="number" min="0" step="1" value="0" />
+        <label for="coupon-starts-at">開始日</label>
+        <input id="coupon-starts-at" name="startsAt" type="date" />
+        <label for="coupon-ends-at">結束日</label>
+        <input id="coupon-ends-at" name="endsAt" type="date" />
+        <label for="coupon-description">說明</label>
+        <textarea id="coupon-description" name="description" placeholder="優惠券說明"></textarea>
+        <label class="check">
+          <input id="coupon-enabled" name="enabled" type="checkbox" checked />
+          啟用
+        </label>
+        <p class="hint">結束日會當成發放時的預設到期日。停用後不能再發，已發出去的券仍保留。</p>
+        <p class="error" id="coupon-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="coupon-cancel-btn" type="button" onclick="document.getElementById('coupon-modal').classList.add('hidden')">取消</button>
+          <button type="submit" id="coupon-submit-btn">新增</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/shared/shared.js"></script>
+    <script src="/coupons/coupons.js"></script>
+  </body>
+</html>

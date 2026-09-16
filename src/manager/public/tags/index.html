@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>標籤｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/shared/shared.css" />
+    <link rel="stylesheet" href="/tags/tags.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" href="/members">會員</a>
+        <a id="nav-branches" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" href="/coupons">優惠券</a>
+        <a id="nav-products" href="/products">物種</a>
+        <a id="nav-mice" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>標籤</h2>
+          <button id="tag-open-btn" type="button" onclick="document.getElementById('tag-modal').classList.remove('hidden')">新增</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>名稱</th>
+                <th>說明</th>
+              </tr>
+            </thead>
+            <tbody id="tag-rows">
+              <tr>
+                <td colspan="2" class="empty">尚無標籤</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="tag-modal" class="modal-backdrop hidden">
+      <form class="modal" id="tag-form">
+        <h3 id="tag-modal-title">新增標籤</h3>
+        <label for="tag-name">名稱</label>
+        <input id="tag-name" name="name" required />
+        <label for="tag-description">說明</label>
+        <textarea id="tag-description" name="description" placeholder="標籤說明"></textarea>
+        <p class="error" id="tag-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="tag-cancel-btn" type="button" onclick="document.getElementById('tag-modal').classList.add('hidden')">取消</button>
+          <button type="submit" id="tag-submit-btn">新增</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/shared/shared.js"></script>
+    <script src="/tags/tags.js"></script>
+  </body>
+</html>

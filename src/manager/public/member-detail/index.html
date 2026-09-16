@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>會員詳情｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/shared/shared.css" />
+    <link rel="stylesheet" href="/member-detail/member-detail.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" class="active" href="/members">會員</a>
+        <a id="nav-branches" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" href="/coupons">優惠券</a>
+        <a id="nav-products" href="/products">物種</a>
+        <a id="nav-mice" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <div>
+            <a class="back" href="/members">← 會員列表</a>
+            <h2 id="member-name">會員詳情</h2>
+          </div>
+          <button id="member-edit-open-btn" type="button" onclick="document.getElementById('member-edit-modal').classList.remove('hidden')">編輯</button>
+        </div>
+        <div class="panel">
+          <div class="profile">
+            <span class="avatar-lg" id="member-avatar"></span>
+            <div class="profile-grid">
+              <div>
+                <span>手機</span>
+                <strong id="member-mobile">—</strong>
+              </div>
+              <div>
+                <span>LINE</span>
+                <strong id="member-line">—</strong>
+              </div>
+              <div>
+                <span>生日</span>
+                <strong id="member-birthday">—</strong>
+              </div>
+              <div>
+                <span>會員等級</span>
+                <strong id="member-vip">—</strong>
+              </div>
+              <div>
+                <span>累積消費</span>
+                <strong id="member-spend">—</strong>
+              </div>
+              <div>
+                <span>餌料寄杯</span>
+                <strong id="member-prepaid-feed">—</strong>
+              </div>
+              <div>
+                <span>儲值金</span>
+                <strong id="member-stored-credit">—</strong>
+              </div>
+            </div>
+          </div>
+          <div class="profile-tags">
+            <div>
+              <span class="label">標籤</span>
+              <div class="chips" id="member-tags">
+                <span class="muted">尚無標籤</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="section-head">
+            <h3>偏好物種</h3>
+            <button id="member-animal-open-btn" type="button" onclick="document.getElementById('member-animal-modal').classList.remove('hidden')">編輯</button>
+          </div>
+          <div class="chips" id="member-products">
+            <span class="muted">尚未選擇</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="page-head" style="margin-bottom: 12px">
+            <h3 style="margin: 0; font-size: 16px">優惠券</h3>
+            <button id="member-coupon-issue-btn" type="button" onclick="document.getElementById('member-coupon-modal').classList.remove('hidden')">發放</button>
+          </div>
+          <p class="error" id="member-coupon-error"></p>
+          <table>
+            <thead>
+              <tr>
+                <th>名稱</th>
+                <th>內容</th>
+                <th>狀態</th>
+                <th>到期</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="member-coupon-rows">
+              <tr>
+                <td colspan="5" class="empty">尚未持有優惠券</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h3 style="margin: 0 0 12px; font-size: 16px">交易紀錄</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>訂單編號</th>
+                <th>分店</th>
+                <th>品項</th>
+                <th>金額</th>
+                <th>狀態</th>
+                <th>時間</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-rows">
+              <tr>
+                <td colspan="6" class="empty">尚無交易紀錄</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="member-edit-modal" class="modal-backdrop hidden">
+      <form class="modal" id="member-edit-form">
+        <h3>編輯會員</h3>
+        <label for="edit-mobile">手機</label>
+        <input id="edit-mobile" name="mobile" />
+        <label for="edit-display-name">名稱</label>
+        <input id="edit-display-name" name="displayName" />
+        <label for="edit-vip">會員等級</label>
+        <select id="edit-vip" name="vipId" required>
+          <option value="">請選擇等級</option>
+        </select>
+        <label for="edit-birthday">生日</label>
+        <input id="edit-birthday" name="birthday" type="date" />
+        <label for="edit-prepaid-feed">餌料寄杯</label>
+        <input id="edit-prepaid-feed" name="prepaidFeed" type="number" min="0" step="1" />
+        <label for="edit-stored-credit">儲值金</label>
+        <input id="edit-stored-credit" name="storedCredit" type="number" min="0" step="1" />
+        <div class="section-head">
+          <span class="label">標籤</span>
+          <button class="ghost" id="member-tag-add-btn" type="button">新增</button>
+        </div>
+        <div id="member-tag-create" class="hidden">
+          <label for="member-tag-new-name">名稱</label>
+          <input id="member-tag-new-name" />
+          <label for="member-tag-new-desc">說明</label>
+          <textarea id="member-tag-new-desc" placeholder="標籤說明"></textarea>
+          <p class="error" id="member-tag-create-error"></p>
+          <div class="modal-actions">
+            <button class="ghost" id="member-tag-create-cancel" type="button">取消</button>
+            <button id="member-tag-create-save" type="button">新增標籤</button>
+          </div>
+        </div>
+        <div id="member-tag-options" class="tag-list">
+          <p class="muted">尚無標籤，請先新增。</p>
+        </div>
+        <p class="error" id="member-edit-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="member-edit-cancel-btn" type="button" onclick="document.getElementById('member-edit-modal').classList.add('hidden')">取消</button>
+          <button type="submit">儲存</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="member-animal-modal" class="modal-backdrop hidden">
+      <form class="modal" id="member-animal-form">
+        <h3>編輯偏好物種</h3>
+        <div class="tag-list" id="member-product-options">
+          <p class="muted">尚無物種，請先到物種頁新增。</p>
+        </div>
+        <p class="error" id="member-animal-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="member-animal-cancel-btn" type="button" onclick="document.getElementById('member-animal-modal').classList.add('hidden')">取消</button>
+          <button type="submit">儲存</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="member-coupon-modal" class="modal-backdrop hidden">
+      <form class="modal" id="member-coupon-form">
+        <h3>發放優惠券</h3>
+        <label for="member-coupon-id">優惠券</label>
+        <select id="member-coupon-id" name="couponId" required>
+          <option value="">請選擇優惠券</option>
+        </select>
+        <label for="member-coupon-expires">到期日</label>
+        <input id="member-coupon-expires" name="expiresAt" type="date" />
+        <p class="hint">空白則使用券種結束日。</p>
+        <p class="error" id="member-coupon-modal-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="member-coupon-cancel-btn" type="button" onclick="document.getElementById('member-coupon-modal').classList.add('hidden')">取消</button>
+          <button type="submit">發放</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/shared/shared.js"></script>
+    <script src="/member-detail/member-detail.js"></script>
+  </body>
+</html>

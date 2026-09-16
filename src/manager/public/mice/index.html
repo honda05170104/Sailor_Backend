@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>老鼠訂單｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/mice.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" href="/members">會員</a>
+        <a id="nav-branches" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" href="/coupons">優惠券</a>
+        <a id="nav-products" href="/products">物種</a>
+        <a id="nav-mice" class="active" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>會員訂單</h2>
+          <div class="toolbar">
+            <button class="ghost" type="button" onclick="window.shiftMouseDay && window.shiftMouseDay(-1)">上一收單</button>
+            <p class="mice-range" id="mice-range"></p>
+            <button class="ghost" type="button" onclick="window.shiftMouseDay && window.shiftMouseDay(1)">下一收單</button>
+            <button class="ghost" type="button" onclick="window.loadMouseDay && window.loadMouseDay('')">目前收單</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div id="mice-orders">
+            <p class="empty">尚無訂單</p>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/mice.js"></script>
+  </body>
+</html>
+

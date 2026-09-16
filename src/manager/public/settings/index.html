@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>系統設定｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/settings.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" href="/members">會員</a>
+        <a id="nav-branches" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" href="/coupons">優惠券</a>
+        <a id="nav-products" href="/products">物種</a>
+        <a id="nav-mice" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" class="active" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>系統設定</h2>
+        </div>
+        <form id="settings-form">
+          <div class="panel">
+            <div class="section-head">
+              <h3>時間設定</h3>
+            </div>
+            <label for="settings-timezone">時區</label>
+            <input id="settings-timezone" name="timezone" required placeholder="Asia/Taipei" />
+            <p class="hint">之後其他跟時間有關的規則也會放在這裡。預設是台北時間。</p>
+          </div>
+          <div class="panel">
+            <div class="section-head">
+              <h3>訂購老鼠</h3>
+            </div>
+            <div class="settings-grid">
+              <div>
+                <label for="settings-deadline-weekday">收單截止（星期）</label>
+                <select id="settings-deadline-weekday" name="deadlineWeekday" required>
+                  <option value="0">週日</option>
+                  <option value="1">週一</option>
+                  <option value="2">週二</option>
+                  <option value="3">週三</option>
+                  <option value="4">週四</option>
+                  <option value="5">週五</option>
+                  <option value="6">週六</option>
+                </select>
+              </div>
+              <div>
+                <label for="settings-deadline-time">截止時間</label>
+                <input id="settings-deadline-time" name="deadlineTime" type="time" required />
+              </div>
+              <div>
+                <label for="settings-arrive-weekday">到貨（星期）</label>
+                <select id="settings-arrive-weekday" name="arriveWeekday" required>
+                  <option value="0">週日</option>
+                  <option value="1">週一</option>
+                  <option value="2">週二</option>
+                  <option value="3">週三</option>
+                  <option value="4">週四</option>
+                  <option value="5">週五</option>
+                  <option value="6">週六</option>
+                </select>
+              </div>
+              <div>
+                <label for="settings-arrive-offset">到貨再延後幾週</label>
+                <input id="settings-arrive-offset" name="arriveOffsetWeeks" type="number" min="0" max="8" step="1" required />
+              </div>
+            </div>
+            <p class="hint">預設是週二 18:00 截止、同一週週四到貨。到貨日會從截止日往後算到指定星期；若截止當天就是到貨日，會算成同一天。已叫貨的週次不會被改到。</p>
+            <p class="error" id="settings-error"></p>
+            <div class="modal-actions">
+              <button type="submit" id="settings-save-btn">儲存</button>
+            </div>
+          </div>
+        </form>
+      </main>
+    </div>
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/settings.js"></script>
+  </body>
+</html>

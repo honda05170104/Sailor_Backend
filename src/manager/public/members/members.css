@@ -1,0 +1,34 @@
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--line);
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-on {
+  background: #e8f3ea;
+  color: #2d6a3e;
+}
+
+.status-off {
+  background: #f3eee8;
+  color: #6f675f;
+}
+
+@media (max-width: 800px) {
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

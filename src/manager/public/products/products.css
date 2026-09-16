@@ -1,0 +1,29 @@
+/* 物種頁：分類底下管理物種 */
+.category-card .section-head {
+  margin-bottom: 8px;
+}
+
+.category-meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.category-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.category-card table {
+  margin-top: 4px;
+}
+
+@media (max-width: 800px) {
+  .category-actions {
+    width: 100%;
+  }
+
+  .category-actions button {
+    flex: 1;
+  }
+}

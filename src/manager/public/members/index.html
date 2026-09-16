@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>會員｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/members.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" class="active" href="/members">會員</a>
+        <a id="nav-branches" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" href="/coupons">優惠券</a>
+        <a id="nav-products" href="/products">物種</a>
+        <a id="nav-mice" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>會員</h2>
+          <div class="toolbar">
+            <input id="member-search" type="search" placeholder="搜尋名字或電話" />
+            <select id="member-line-filter">
+              <option value="">全部 LINE</option>
+              <option value="linked">已開通</option>
+              <option value="unlinked">未開通</option>
+            </select>
+            <button id="member-search-btn" type="button" onclick="window.loadMembers && window.loadMembers()">搜尋</button>
+            <button id="import-open-btn" type="button" onclick="document.getElementById('import-modal').classList.remove('hidden');window.openMemberImport && window.openMemberImport()">匯入</button>
+          </div>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>手機</th>
+                <th>名稱</th>
+                <th>生日</th>
+                <th>會員等級</th>
+                <th>LINE</th>
+              </tr>
+            </thead>
+            <tbody id="member-rows">
+              <tr>
+                <td colspan="6" class="empty">尚無會員資料</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="import-modal" class="modal-backdrop hidden">
+      <form class="modal" id="import-form">
+        <h3>匯入訂單明細</h3>
+        <label for="import-branch">分店</label>
+        <select id="import-branch" name="branchId" required>
+          <option value="">請選擇分店</option>
+        </select>
+        <label for="import-file">檔案</label>
+        <input id="import-file" name="file" type="file" accept=".csv,.txt,text/csv,text/plain" required />
+        <p class="hint">匯入前必須選擇分店，這批訂單會記成該店消費。會用客戶電話對應會員，有電話但還沒註冊會先建立會員。</p>
+        <p class="error" id="import-error"></p>
+        <p class="hint" id="import-result"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="import-cancel-btn" type="button" onclick="document.getElementById('import-modal').classList.add('hidden')">取消</button>
+          <button type="submit">匯入</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape") return;
+        var modal = document.getElementById("import-modal");
+        if (!modal || modal.classList.contains("hidden")) return;
+        modal.classList.add("hidden");
+      });
+    </script>
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/members.js"></script>
+  </body>
+</html>

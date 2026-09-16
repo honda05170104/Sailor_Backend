@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>分店｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/shared/shared.css" />
+    <link rel="stylesheet" href="/branches/branches.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" href="/members">會員</a>
+        <a id="nav-branches" class="active" href="/branches">分店</a>
+        <a id="nav-vips" href="/vips">會員等級</a>
+        <a id="nav-coupons" href="/coupons">優惠券</a>
+        <a id="nav-products" href="/products">物種</a>
+        <a id="nav-mice" href="/mice">老鼠訂單</a>
+        <a id="nav-settings" href="/settings">系統設定</a>
+        <button class="link" id="logout-btn" type="button">登出</button>
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>分店</h2>
+          <button id="branch-open-btn" type="button" onclick="document.getElementById('branch-modal').classList.remove('hidden')">新增</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>名稱</th>
+                <th>類型</th>
+              </tr>
+            </thead>
+            <tbody id="branch-rows">
+              <tr>
+                <td colspan="2" class="empty">尚無分店</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="branch-modal" class="modal-backdrop hidden">
+      <form class="modal" id="branch-form">
+        <h3>新增分店</h3>
+        <label for="branch-name">名稱</label>
+        <input id="branch-name" name="name" required />
+        <label for="branch-type">類型</label>
+        <select id="branch-type" name="type" required>
+          <option value="Directly">直營</option>
+          <option value="Corporate">企業</option>
+          <option value="Department">專櫃</option>
+        </select>
+        <p class="error" id="branch-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="branch-cancel-btn" type="button" onclick="document.getElementById('branch-modal').classList.add('hidden')">取消</button>
+          <button type="submit">新增</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/shared/shared.js"></script>
+    <script src="/branches/branches.js"></script>
+  </body>
+</html>
