@@ -5,7 +5,10 @@ import Transaction from '../../models/Transaction.js';
 import Vip from '../../models/Vip.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
-import { getVerifiedLineProfile } from './line.service.js';
+import {
+  exchangeLineCodeForAccessToken,
+  getVerifiedLineProfile,
+} from './line.service.js';
 import { normalizeMobile } from '../../utils/orderImport.js';
 import { defaultVip, syncUserVip, vipProgress } from '../../utils/vip.js';
 import { applyTagIds } from '../../utils/tags.js';
@@ -98,6 +101,45 @@ async function claimImportedUserByMobile(user, mobile) {
 
   await existing.deleteOne();
   await syncUserVip(user);
+}
+
+export async function exchangeLineToken({ code, redirectUri, codeVerifier } = {}) {
+  if (!code) {
+    throw new AppError(
+      { field: 'code', message: 'code is required' },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+  if (!redirectUri) {
+    throw new AppError(
+      { field: 'redirectUri', message: 'redirectUri is required' },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+  if (!codeVerifier) {
+    throw new AppError(
+      { field: 'codeVerifier', message: 'codeVerifier is required' },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+
+  try {
+    const accessToken = await exchangeLineCodeForAccessToken({
+      code,
+      redirectUri,
+      codeVerifier,
+    });
+    return { accessToken };
+  } catch (error) {
+    const status = Number(error?.status) || 500;
+    if (status === 400) {
+      throw new AppError(error.message || 'Missing LINE authorization parameters', ErrorCode.BAD_REQUEST);
+    }
+    if (status === 401) {
+      throw new AppError(error.message || 'Unable to exchange LINE access token', ErrorCode.UNAUTHORIZED);
+    }
+    throw new AppError(error.message || 'LINE channel is not configured', ErrorCode.INTERNAL_SERVER_ERROR);
+  }
 }
 
 export async function authWithLine({ accessToken }) {

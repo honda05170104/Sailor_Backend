@@ -4,6 +4,7 @@ import * as userController from '../controllers/user.controller.js';
 
 const router = express.Router();
 
+router.post('/lineToken', userController.lineToken);
 router.post('/lineLogin', userController.line);
 router.get('/getUser', auth, userController.get);
 router.get('/getTransaction', auth, userController.getTransactions);

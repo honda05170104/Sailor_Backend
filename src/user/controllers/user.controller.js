@@ -2,6 +2,11 @@ import asyncHandler from '../../middleware/asyncHandler.js';
 import { success } from '../../utils/response.js';
 import * as userService from '../services/user.service.js';
 
+export const lineToken = asyncHandler(async (req, res) => {
+  const data = await userService.exchangeLineToken(req.body || {});
+  return success(res, data);
+});
+
 export const line = asyncHandler(async (req, res) => {
   const data = await userService.authWithLine(req.body || {});
   return success(res, data);
