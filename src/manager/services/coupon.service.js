@@ -5,11 +5,14 @@ import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import {
+  COUPON_CATEGORIES,
   effectiveCouponStatus,
   parseCouponFields,
   parseOptionalDate,
+  resolveCouponExpiresAt,
+  assertCouponIssuable,
   snapshotCoupon,
-} from '../../utils/coupons.js';
+} from '../../services/coupons.js';
 
 async function expireStaleCoupons(userId) {
   await UserCoupon.updateMany(
@@ -22,8 +25,16 @@ async function expireStaleCoupons(userId) {
   );
 }
 
-export async function listCoupons() {
-  const coupons = await Coupon.find().sort({ createdAt: -1 });
+export async function listCoupons({ category } = {}) {
+  const filter = {};
+  const raw = String(category || '')
+    .trim()
+    .toLowerCase();
+  if (raw && COUPON_CATEGORIES.includes(raw)) {
+    filter.category = raw;
+  }
+
+  const coupons = await Coupon.find(filter).sort({ createdAt: -1 });
   return {
     coupons: coupons.map((coupon) => coupon.toSafeJSON()),
   };
@@ -97,12 +108,15 @@ export async function issueCoupon(userId, { couponId, expiresAt } = {}) {
     );
   }
 
+  assertCouponIssuable(coupon);
+
+  const issuedAt = new Date();
   const expiry =
     expiresAt !== undefined && expiresAt !== ''
       ? parseOptionalDate(expiresAt, 'expiresAt')
-      : coupon.endsAt || null;
+      : resolveCouponExpiresAt(coupon, issuedAt);
 
-  if (expiry && expiry < new Date()) {
+  if (expiry && expiry < issuedAt) {
     throw new AppError(
       { field: 'expiresAt', message: 'expiresAt must be in the future' },
       ErrorCode.BAD_REQUEST
@@ -113,7 +127,8 @@ export async function issueCoupon(userId, { couponId, expiresAt } = {}) {
     user: user._id,
     ...snapshotCoupon(coupon),
     status: 'available',
-    issuedAt: new Date(),
+    source: 'manual',
+    issuedAt,
     expiresAt: expiry,
   });
 

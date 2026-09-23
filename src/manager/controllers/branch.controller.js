@@ -6,8 +6,3 @@ export const list = asyncHandler(async (_req, res) => {
   const data = await branchService.listBranches();
   return success(res, data);
 });
-
-export const create = asyncHandler(async (req, res) => {
-  const data = await branchService.createBranch(req.body || {});
-  return success(res, data);
-});

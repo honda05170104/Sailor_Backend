@@ -1,4 +1,4 @@
-import { DEFAULT_TIMES, GLOBAL_CONFIG_KEY } from '../utils/globalConfig.js';
+import { DEFAULT_TIMES, GLOBAL_CONFIG_KEY } from '../services/globalConfig.js';
 
 export default {
   name: '022_init_global_config',

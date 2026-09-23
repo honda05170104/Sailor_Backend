@@ -3,7 +3,7 @@ import {
   GLOBAL_CONFIG_KEY,
   DEFAULT_TIMES,
   parseTimesPayload,
-} from '../../utils/globalConfig.js';
+} from '../../services/globalConfig.js';
 
 export async function ensureGlobalConfig() {
   const existing = await GlobalConfig.findOne({ key: GLOBAL_CONFIG_KEY });

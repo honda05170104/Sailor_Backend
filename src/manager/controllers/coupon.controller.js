@@ -2,8 +2,10 @@ import asyncHandler from '../../middleware/asyncHandler.js';
 import { success } from '../../utils/response.js';
 import * as couponService from '../services/coupon.service.js';
 
-export const list = asyncHandler(async (_req, res) => {
-  const data = await couponService.listCoupons();
+export const list = asyncHandler(async (req, res) => {
+  const data = await couponService.listCoupons({
+    category: req.query?.category,
+  });
   return success(res, data);
 });
 

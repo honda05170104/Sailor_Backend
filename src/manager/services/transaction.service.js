@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import User from '../../models/User.js';
-import Branch from '../../models/Branch.js';
 import Transaction from '../../models/Transaction.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
@@ -8,9 +7,15 @@ import {
   csvToObjects,
   normalizeMobile,
   parseCustomerField,
+  parseImportFile,
   toNumber,
-} from '../../utils/orderImport.js';
-import { addUserSpend, defaultVip } from '../../utils/vip.js';
+} from '../../services/orderImport.js';
+import { defaultVip } from '../../services/vip.js';
+import { requireStore } from '../../data/stores.js';
+import {
+  normalizeOrderStatus,
+  generateTxnNo,
+} from '../../services/transactions.js';
 
 function cell(row, ...keys) {
   for (const key of keys) {
@@ -38,7 +43,9 @@ function groupOrders(rows) {
         customerName: customer.name,
         customerMobile: customer.mobile,
         source: cell(row, '訂單來源', 'source'),
-        orderStatus: cell(row, '訂單狀態', 'orderStatus'),
+        orderStatus: normalizeOrderStatus(
+          cell(row, '訂單狀態', 'orderStatus')
+        ),
         paymentStatus: cell(row, '付款狀態', 'paymentStatus'),
         shippingStatus: cell(row, '出貨狀態', 'shippingStatus'),
         tags: cell(row, '標籤', 'tags'),
@@ -106,7 +113,7 @@ async function findOrCreateUser(order, mobileIndex) {
   }
 }
 
-export async function importOrderExport({ csv, rows, branchId } = {}) {
+export async function importOrderExport({ csv, rows, branchId, file } = {}) {
   const id = String(branchId || '').trim();
   if (!id || !mongoose.isValidObjectId(id)) {
     throw new AppError(
@@ -115,7 +122,7 @@ export async function importOrderExport({ csv, rows, branchId } = {}) {
     );
   }
 
-  const branch = await Branch.findById(id);
+  const branch = requireStore(id);
   if (!branch) {
     throw new AppError(
       { field: 'branchId', message: '找不到分店' },
@@ -123,11 +130,18 @@ export async function importOrderExport({ csv, rows, branchId } = {}) {
     );
   }
 
-  const records = Array.isArray(rows) && rows.length ? rows : csvToObjects(csv);
+  let records = Array.isArray(rows) && rows.length ? rows : null;
+  if (!records && file) {
+    records = parseImportFile(file);
+  }
+  if (!records && csv) {
+    records = csvToObjects(csv);
+  }
+  if (!records) records = [];
 
   if (!records.length) {
     throw new AppError(
-      { field: 'csv', message: 'csv is empty or invalid' },
+      { field: 'file', message: '檔案是空的或格式不正確' },
       ErrorCode.BAD_REQUEST
     );
   }
@@ -154,14 +168,16 @@ export async function importOrderExport({ csv, rows, branchId } = {}) {
     if (created) summary.createdUsers += 1;
 
     try {
+      // Import writes transactions only. VIP tier / upgrade / cashback
+      // are calculated by the daily agenda job (vip.dailySync).
       await Transaction.create({
         ...order,
+        txnNo: generateTxnNo(),
         user: user._id,
         branch: branch._id,
         importedAt: new Date(),
       });
       summary.imported += 1;
-      await addUserSpend(user, order.totalAmount);
     } catch (error) {
       if (error?.code === 11000) {
         summary.skippedDuplicate += 1;

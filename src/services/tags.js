@@ -1,8 +1,7 @@
 import mongoose from 'mongoose';
 import Tag from '../models/Tag.js';
-import AppError from './AppError.js';
+import AppError from '../utils/AppError.js';
 import { ErrorCode } from '../constants/codes.js';
-import { animalPopulate } from './animals.js';
 
 export async function listTagOptions() {
   const tags = await Tag.find().sort({ name: 1 });
@@ -33,6 +32,6 @@ export async function applyTagIds(user, tagIds = []) {
 
   user.tags = ids;
   await user.save();
-  await user.populate(['vip', 'tags', animalPopulate()]);
+  await user.populate('tags');
   return user;
 }

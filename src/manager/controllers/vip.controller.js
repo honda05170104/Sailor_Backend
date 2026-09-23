@@ -3,16 +3,16 @@ import { success } from '../../utils/response.js';
 import * as vipService from '../services/vip.service.js';
 
 export const list = asyncHandler(async (_req, res) => {
-  const data = await vipService.listVips();
+  const data = await vipService.listVipsForManager();
   return success(res, data);
 });
 
-export const create = asyncHandler(async (req, res) => {
-  const data = await vipService.createVip(req.body || {});
+export const runDailySync = asyncHandler(async (_req, res) => {
+  const data = await vipService.runVipDailySync();
   return success(res, data);
 });
 
-export const update = asyncHandler(async (req, res) => {
-  const data = await vipService.updateVip(req.params.id, req.body || {});
+export const runDailyCashback = asyncHandler(async (_req, res) => {
+  const data = await vipService.runVipDailyCashback();
   return success(res, data);
 });

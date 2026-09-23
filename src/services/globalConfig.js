@@ -1,4 +1,4 @@
-import AppError from './AppError.js';
+import AppError from '../utils/AppError.js';
 import { ErrorCode } from '../constants/codes.js';
 
 export const GLOBAL_CONFIG_KEY = 'default';

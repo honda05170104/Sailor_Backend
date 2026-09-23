@@ -13,13 +13,24 @@
       <aside>
         <h1>水手 會員管理系統</h1>
         <a id="nav-members" href="/members">會員</a>
-        <a id="nav-branches" href="/branches">分店</a>
-        <a id="nav-vips" href="/vips">會員等級</a>
-        <a id="nav-coupons" href="/coupons">優惠券</a>
-        <a id="nav-products" class="active" href="/products">物種</a>
-        <a id="nav-mice" href="/mice">老鼠訂單</a>
-        <a id="nav-settings" href="/settings">系統設定</a>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
         <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+
         <div class="who" id="who"></div>
       </aside>
       <main>

@@ -13,35 +13,56 @@
       <aside>
         <h1>水手 會員管理系統</h1>
         <a id="nav-members" href="/members">會員</a>
-        <a id="nav-branches" href="/branches">分店</a>
-        <a id="nav-vips" href="/vips">會員等級</a>
-        <a id="nav-coupons" class="active" href="/coupons">優惠券</a>
-        <a id="nav-products" href="/products">物種</a>
-        <a id="nav-mice" href="/mice">老鼠訂單</a>
-        <a id="nav-settings" href="/settings">系統設定</a>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" class="active" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
         <button class="link" id="logout-btn" type="button">登出</button>
+
         <div class="who" id="who"></div>
       </aside>
       <main>
         <div class="page-head">
           <h2>優惠券</h2>
-          <button id="coupon-open-btn" type="button" onclick="document.getElementById('coupon-modal').classList.remove('hidden')">新增</button>
+          <div class="toolbar">
+            <select id="coupon-category-filter">
+              <option value="">全部類別</option>
+              <option value="upgrade">升等禮</option>
+              <option value="birthday">生日禮</option>
+              <option value="general">一般</option>
+            </select>
+            <button id="coupon-open-btn" type="button" onclick="document.getElementById('coupon-modal').classList.remove('hidden')">新增</button>
+          </div>
         </div>
         <div class="panel">
           <table>
             <thead>
               <tr>
                 <th>名稱</th>
+                <th>類別</th>
                 <th>類型</th>
                 <th>面額</th>
                 <th>低消</th>
+                <th>到期方式</th>
                 <th>狀態</th>
                 <th>說明</th>
               </tr>
             </thead>
             <tbody id="coupon-rows">
               <tr>
-                <td colspan="6" class="empty">尚無優惠券</td>
+                <td colspan="8" class="empty">尚無優惠券</td>
               </tr>
             </tbody>
           </table>
@@ -52,8 +73,18 @@
     <div id="coupon-modal" class="modal-backdrop hidden">
       <form class="modal" id="coupon-form">
         <h3 id="coupon-modal-title">新增優惠券</h3>
+        <label class="check">
+          <input id="coupon-enabled" name="enabled" type="checkbox" checked />
+          啟用
+        </label>
         <label for="coupon-name">名稱</label>
         <input id="coupon-name" name="name" required />
+        <label for="coupon-category">類別</label>
+        <select id="coupon-category" name="category" required>
+          <option value="general">一般</option>
+          <option value="upgrade">升等禮</option>
+          <option value="birthday">生日禮</option>
+        </select>
         <label for="coupon-type">類型</label>
         <select id="coupon-type" name="type" required>
           <option value="amount">折抵金額</option>
@@ -63,17 +94,24 @@
         <input id="coupon-value" name="value" type="number" min="0" step="1" required />
         <label for="coupon-min-spend">低消</label>
         <input id="coupon-min-spend" name="minSpend" type="number" min="0" step="1" value="0" />
-        <label for="coupon-starts-at">開始日</label>
-        <input id="coupon-starts-at" name="startsAt" type="date" />
-        <label for="coupon-ends-at">結束日</label>
-        <input id="coupon-ends-at" name="endsAt" type="date" />
+        <label for="coupon-expiry-mode">到期方式</label>
+        <select id="coupon-expiry-mode" name="expiryMode" required>
+          <option value="fixed">固定到期日（開始～截止）</option>
+          <option value="relative">發放後幾天到期</option>
+        </select>
+        <div id="coupon-fixed-fields">
+          <label for="coupon-starts-at">開始日</label>
+          <input id="coupon-starts-at" name="startsAt" type="date" />
+          <label for="coupon-ends-at">截止日</label>
+          <input id="coupon-ends-at" name="endsAt" type="date" />
+        </div>
+        <div id="coupon-relative-fields" class="hidden">
+          <label for="coupon-expire-days">發放後有效天數</label>
+          <input id="coupon-expire-days" name="expireDays" type="number" min="1" step="1" value="30" />
+        </div>
         <label for="coupon-description">說明</label>
         <textarea id="coupon-description" name="description" placeholder="優惠券說明"></textarea>
-        <label class="check">
-          <input id="coupon-enabled" name="enabled" type="checkbox" checked />
-          啟用
-        </label>
-        <p class="hint">結束日會當成發放時的預設到期日。停用後不能再發，已發出去的券仍保留。</p>
+        <p class="hint">固定到期日：活動期間內發放，持有到期日＝截止日。發放後幾天：每人從領取當日起算。停用後不能再發，已發出去的券仍保留。</p>
         <p class="error" id="coupon-error"></p>
         <div class="modal-actions">
           <button class="ghost" id="coupon-cancel-btn" type="button" onclick="document.getElementById('coupon-modal').classList.add('hidden')">取消</button>

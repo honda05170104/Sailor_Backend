@@ -13,13 +13,24 @@
       <aside>
         <h1>水手 會員管理系統</h1>
         <a id="nav-members" class="active" href="/members">會員</a>
-        <a id="nav-branches" href="/branches">分店</a>
-        <a id="nav-vips" href="/vips">會員等級</a>
-        <a id="nav-coupons" href="/coupons">優惠券</a>
-        <a id="nav-products" href="/products">物種</a>
-        <a id="nav-mice" href="/mice">老鼠訂單</a>
-        <a id="nav-settings" href="/settings">系統設定</a>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
         <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+
         <div class="who" id="who"></div>
       </aside>
       <main>
@@ -45,12 +56,14 @@
                 <th>名稱</th>
                 <th>生日</th>
                 <th>會員等級</th>
+                <th>會員期限</th>
                 <th>LINE</th>
+                <th>上次使用</th>
               </tr>
             </thead>
             <tbody id="member-rows">
               <tr>
-                <td colspan="6" class="empty">尚無會員資料</td>
+                <td colspan="8" class="empty">尚無會員資料</td>
               </tr>
             </tbody>
           </table>
@@ -66,8 +79,14 @@
           <option value="">請選擇分店</option>
         </select>
         <label for="import-file">檔案</label>
-        <input id="import-file" name="file" type="file" accept=".csv,.txt,text/csv,text/plain" required />
-        <p class="hint">匯入前必須選擇分店，這批訂單會記成該店消費。會用客戶電話對應會員，有電話但還沒註冊會先建立會員。</p>
+        <input
+          id="import-file"
+          name="file"
+          type="file"
+          accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          required
+        />
+        <p class="hint">支援 CSV、TXT、XLSX。匯入前必須選擇分店，這批訂單會記成該店消費。會用客戶電話對應會員，有電話但還沒註冊會先建立會員。</p>
         <p class="error" id="import-error"></p>
         <p class="hint" id="import-result"></p>
         <div class="modal-actions">

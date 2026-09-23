@@ -2,32 +2,52 @@ import crypto from 'crypto';
 import User from '../../models/User.js';
 import Token from '../../models/Token.js';
 import Transaction from '../../models/Transaction.js';
-import Vip from '../../models/Vip.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import {
   exchangeLineCodeForAccessToken,
   getVerifiedLineProfile,
 } from './line.service.js';
-import { normalizeMobile } from '../../utils/orderImport.js';
-import { defaultVip, syncUserVip, vipProgress } from '../../utils/vip.js';
-import { applyTagIds } from '../../utils/tags.js';
-import { applyAnimalIds, animalPopulate, listAnimalCatalog } from '../../utils/animals.js';
-import { presentUserMouseOrder, setUserMouseOrder } from '../../utils/mouseOrders.js';
+import { normalizeMobile } from '../../services/orderImport.js';
+import { defaultVip, syncUserVip, vipProgress, listVips } from '../../services/vip.js';
+import { applyTagIds } from '../../services/tags.js';
+import { applyAnimalIds, animalPopulate, listAnimalCatalog } from '../../manager/services/animal.service.js';
+import { presentUserMouseOrder, setUserMouseOrder } from '../../services/mouseOrders.js';
 import { getTimes } from '../../manager/services/config.service.js';
 import { listUserCoupons, countAvailableCoupons } from '../../manager/services/coupon.service.js';
+import { issuePendingPromotions } from '../../manager/services/promotion.service.js';
 
 async function presentUser(user) {
-  if (!user.populated('vip')) await user.populate('vip');
   if (!user.populated('tags')) await user.populate('tags');
   if (!user.populated('animals')) await user.populate(animalPopulate());
   const progress = await vipProgress(user);
   return {
     ...user.toSafeJSON(),
     couponCount: await countAvailableCoupons(user._id),
+    /** Near-year spend used for VIP thresholds. */
+    yearSpend: progress.yearSpend,
+    /** Next tier to unlock; null if already top tier. */
     nextVip: progress.nextVip,
+    /** Amount still needed (yearSpend) to reach nextVip. */
     spendToNext: progress.spendToNext,
+    /** Current membership end date. */
+    vipExpiresAt: progress.vipExpiresAt,
+    vipProgress: {
+      yearSpend: progress.yearSpend,
+      nextVip: progress.nextVip,
+      spendToNext: progress.spendToNext,
+      vipExpiresAt: progress.vipExpiresAt,
+      goldProtectExpiresAt: progress.goldProtectExpiresAt,
+    },
   };
+}
+
+async function safeIssuePromotions(user, options) {
+  try {
+    await issuePendingPromotions(user, options);
+  } catch (error) {
+    console.error('Failed to issue promotions:', error?.message || error);
+  }
 }
 
 async function requireAccessToken(accessToken) {
@@ -60,9 +80,9 @@ async function issueAuthToken(user) {
 }
 
 async function listTransactions(user) {
-  const transactions = await Transaction.find({ user: user._id })
-    .sort({ createdAt: -1 })
-    .populate('branch', 'name type');
+  const transactions = await Transaction.find({ user: user._id }).sort({
+    createdAt: -1,
+  });
 
   return transactions.map((doc) => doc.toSafeJSON());
 }
@@ -164,6 +184,8 @@ export async function authWithLine({ accessToken }) {
     await user.save();
   }
 
+  await safeIssuePromotions(user, { isNew });
+
   const token = await issueAuthToken(user);
 
   return {
@@ -180,6 +202,8 @@ export async function loginDev({ lineUserId, displayName, avatarUrl } = {}) {
 
   let user = await User.findOne({ lineUserId: lineUserId || 'dev-user' });
 
+  const isNew = !user;
+
   if (!user) {
     user = await User.create({
       lineUserId: lineUserId || 'dev-user',
@@ -191,6 +215,8 @@ export async function loginDev({ lineUserId, displayName, avatarUrl } = {}) {
     user.displayName = displayName || user.displayName;
     await user.save();
   }
+
+  await safeIssuePromotions(user, { isNew });
 
   const token = await issueAuthToken(user);
 
@@ -210,15 +236,15 @@ export async function logout(user, token) {
 }
 
 export async function getMe(user) {
+  await safeIssuePromotions(user);
   return {
     user: await presentUser(user),
   };
 }
 
 export async function getVips() {
-  const vips = await Vip.find().sort({ rank: 1, minSpend: 1 });
   return {
-    vips: vips.map((vip) => vip.toSafeJSON()),
+    vips: listVips(),
   };
 }
 
@@ -287,6 +313,7 @@ export async function updateProfile(user, payload = {}) {
   }
 
   await user.save();
+  await safeIssuePromotions(user);
 
   return {
     user: await presentUser(user),

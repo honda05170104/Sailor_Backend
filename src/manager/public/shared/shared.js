@@ -38,7 +38,9 @@ async function api(path, options = {}) {
   const headers = { ...(fetchOptions.headers || {}) };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (fetchOptions.body) headers["Content-Type"] = "application/json";
+  if (fetchOptions.body && !(fetchOptions.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
 
   const method = String(fetchOptions.method || "GET").toUpperCase();
   const res = await fetch(`/api/v1/manager${path}`, { ...fetchOptions, headers });
@@ -129,10 +131,21 @@ const COUPON_TYPE_LABELS = {
   percent: "折扣 %",
 };
 
+const COUPON_CATEGORY_LABELS = {
+  general: "一般",
+  upgrade: "升等禮",
+  birthday: "生日禮",
+};
+
 const COUPON_STATUS_LABELS = {
   available: "未使用",
   used: "已使用",
   expired: "已過期",
+};
+
+const COUPON_SOURCE_LABELS = {
+  manual: "手動發放",
+  promotion: "優惠活動",
 };
 
 function branchTypeLabel(type) {
@@ -150,6 +163,10 @@ function couponTypeLabel(type) {
   return COUPON_TYPE_LABELS[type] || type || "—";
 }
 
+function couponCategoryLabel(category) {
+  return COUPON_CATEGORY_LABELS[category] || COUPON_CATEGORY_LABELS.general;
+}
+
 function couponValueText(coupon) {
   const value = coupon.value ?? 0;
   if (coupon.type === "percent") return `${value}%`;
@@ -164,6 +181,29 @@ function toDateInput(value) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function couponExpiryText(coupon) {
+  if (!coupon) return "—";
+  if (coupon.expiryMode === "relative") {
+    return coupon.expireDays ? `發放後 ${coupon.expireDays} 天` : "發放後到期";
+  }
+  const start = toDateInput(coupon.startsAt);
+  const end = toDateInput(coupon.endsAt);
+  if (start && end) return `${start} ~ ${end}`;
+  if (end) return `至 ${end}`;
+  return "固定到期日";
+}
+
+function couponSourceLabel(coupon) {
+  if (!coupon) return "—";
+  if (coupon.sourceLabel) return coupon.sourceLabel;
+  const source = coupon.source || "manual";
+  const base = COUPON_SOURCE_LABELS[source] || source;
+  if (source === "promotion" && coupon.promotionName) {
+    return `${base}（${coupon.promotionName}）`;
+  }
+  return base;
 }
 
 function formatDay(value) {
@@ -195,13 +235,72 @@ function lineStatusHtml(user) {
     : '<span class="status status-off">未開通</span>';
 }
 
+const NAV_GROUP_KEY = "managerNavGroups";
+
+function readNavGroupState() {
+  try {
+    return JSON.parse(localStorage.getItem(NAV_GROUP_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeNavGroupState(state) {
+  localStorage.setItem(NAV_GROUP_KEY, JSON.stringify(state));
+}
+
+function bindNavGroups() {
+  const state = readNavGroupState();
+
+  document.querySelectorAll("aside .nav-group").forEach((group, index) => {
+    const title = group.querySelector(".nav-group-title");
+    if (!title) return;
+
+    const key = group.dataset.navKey || title.textContent.trim() || `group-${index}`;
+    group.dataset.navKey = key;
+
+    const hasActive = Boolean(group.querySelector("a.active"));
+    const collapsed =
+      hasActive ? false : state[key] === undefined ? false : Boolean(state[key]);
+    group.classList.toggle("is-collapsed", collapsed);
+    title.setAttribute("aria-expanded", collapsed ? "false" : "true");
+
+    if (title.tagName !== "BUTTON") {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = title.className;
+      button.textContent = title.textContent;
+      button.setAttribute("aria-expanded", title.getAttribute("aria-expanded"));
+      title.replaceWith(button);
+    }
+
+    const btn = group.querySelector(".nav-group-title");
+    btn.addEventListener("click", () => {
+      const next = !group.classList.contains("is-collapsed");
+      group.classList.toggle("is-collapsed", next);
+      btn.setAttribute("aria-expanded", next ? "false" : "true");
+      const latest = readNavGroupState();
+      latest[key] = next;
+      writeNavGroupState(latest);
+    });
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", bindNavGroups);
+} else {
+  bindNavGroups();
+}
+
 return {
   TOKEN_KEY,
   LOGIN_PATH,
   HOME_PATH,
   BRANCH_TYPE_LABELS,
   COUPON_TYPE_LABELS,
+  COUPON_CATEGORY_LABELS,
   COUPON_STATUS_LABELS,
+  COUPON_SOURCE_LABELS,
   getToken,
   setToken,
   clearToken,
@@ -211,11 +310,15 @@ return {
   fillWho,
   bindLogout,
   bindModalDismiss,
+  bindNavGroups,
   requireAuth,
   branchTypeLabel,
   branchName,
   couponTypeLabel,
+  couponCategoryLabel,
   couponValueText,
+  couponExpiryText,
+  couponSourceLabel,
   toDateInput,
   formatDay,
   formatDate,

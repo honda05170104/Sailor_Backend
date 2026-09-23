@@ -1,0 +1,11 @@
+/* 優惠活動頁沿用共用版面 */
+body {
+  min-height: 100vh;
+}
+
+.page-desc {
+  margin: 0 0 1rem;
+  color: var(--muted, #666);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}

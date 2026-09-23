@@ -13,67 +13,141 @@
       <aside>
         <h1>水手 會員管理系統</h1>
         <a id="nav-members" class="active" href="/members">會員</a>
-        <a id="nav-branches" href="/branches">分店</a>
-        <a id="nav-vips" href="/vips">會員等級</a>
-        <a id="nav-coupons" href="/coupons">優惠券</a>
-        <a id="nav-products" href="/products">物種</a>
-        <a id="nav-mice" href="/mice">老鼠訂單</a>
-        <a id="nav-settings" href="/settings">系統設定</a>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
         <button class="link" id="logout-btn" type="button">登出</button>
+
         <div class="who" id="who"></div>
       </aside>
       <main>
         <div class="page-head">
-          <div>
-            <a class="back" href="/members">← 會員列表</a>
-            <h2 id="member-name">會員詳情</h2>
-          </div>
-          <button id="member-edit-open-btn" type="button" onclick="document.getElementById('member-edit-modal').classList.remove('hidden')">編輯</button>
+          <a class="back" href="/members">← 會員列表</a>
         </div>
         <div class="panel">
           <div class="profile">
             <span class="avatar-lg" id="member-avatar"></span>
-            <div class="profile-grid">
-              <div>
-                <span>手機</span>
-                <strong id="member-mobile">—</strong>
+            <div class="profile-main">
+              <div class="profile-head">
+                <h2 id="member-name">會員詳情</h2>
+                <button id="member-edit-open-btn" type="button" onclick="document.getElementById('member-edit-modal').classList.remove('hidden')">編輯</button>
               </div>
-              <div>
-                <span>LINE</span>
-                <strong id="member-line">—</strong>
-              </div>
-              <div>
-                <span>生日</span>
-                <strong id="member-birthday">—</strong>
-              </div>
-              <div>
-                <span>會員等級</span>
-                <strong id="member-vip">—</strong>
-              </div>
-              <div>
-                <span>累積消費</span>
-                <strong id="member-spend">—</strong>
-              </div>
-              <div>
-                <span>餌料寄杯</span>
-                <strong id="member-prepaid-feed">—</strong>
-              </div>
-              <div>
-                <span>儲值金</span>
-                <strong id="member-stored-credit">—</strong>
-              </div>
-            </div>
-          </div>
-          <div class="profile-tags">
-            <div>
-              <span class="label">標籤</span>
-              <div class="chips" id="member-tags">
-                <span class="muted">尚無標籤</span>
+              <div class="profile-grid">
+                <div>
+                  <span>手機</span>
+                  <strong id="member-mobile">—</strong>
+                </div>
+                <div>
+                  <span>LINE</span>
+                  <strong id="member-line">—</strong>
+                </div>
+                <div>
+                  <span>上次使用</span>
+                  <strong id="member-last-used">—</strong>
+                </div>
+                <div>
+                  <span>生日</span>
+                  <strong id="member-birthday">—</strong>
+                </div>
+                <div>
+                  <span>會員等級</span>
+                  <strong id="member-vip">—</strong>
+                </div>
+                <div>
+                  <span>累積消費</span>
+                  <strong id="member-spend">—</strong>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div class="panel">
+
+        <div class="member-split">
+          <div class="balance-card">
+            <div class="balance-row">
+              <div class="balance-item">
+                <div class="balance-card-top">
+                  <div>
+                    <p class="balance-card-label">餌料寄杯</p>
+                    <p class="balance-card-hint">可兌換杯數</p>
+                  </div>
+                  <button class="ghost" id="member-feed-open-btn" type="button">編輯</button>
+                </div>
+                <p class="balance-card-value">
+                  <strong id="member-prepaid-feed">—</strong>
+                  <span class="balance-card-unit">杯</span>
+                </p>
+              </div>
+              <div class="balance-divider" aria-hidden="true"></div>
+              <div class="balance-item">
+                <div class="balance-card-top">
+                  <div>
+                    <p class="balance-card-label">點數</p>
+                    <p class="balance-card-hint">帳戶餘額</p>
+                  </div>
+                  <button class="ghost" id="member-credit-open-btn" type="button">編輯</button>
+                </div>
+                <p class="balance-card-value">
+                  <span class="balance-card-prefix">$</span>
+                  <strong id="member-stored-credit">—</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel coupon-panel">
+            <div class="section-head">
+              <h3>優惠券</h3>
+              <button id="member-coupon-issue-btn" type="button" onclick="document.getElementById('member-coupon-modal').classList.remove('hidden')">發放</button>
+            </div>
+            <p class="error" id="member-coupon-error"></p>
+            <div class="coupon-list" id="member-coupon-rows">
+              <p class="muted coupon-empty">尚未持有優惠券</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel hidden">
+          <form id="member-account-form">
+            <div class="section-head">
+              <h3>標籤</h3>
+              <button class="ghost" id="member-tag-add-btn" type="button">新增</button>
+            </div>
+            <div id="member-tag-create" class="hidden">
+              <label for="member-tag-new-name">名稱</label>
+              <input id="member-tag-new-name" />
+              <label for="member-tag-new-desc">說明</label>
+              <textarea id="member-tag-new-desc" placeholder="標籤說明"></textarea>
+              <p class="error" id="member-tag-create-error"></p>
+              <div class="modal-actions">
+                <button class="ghost" id="member-tag-create-cancel" type="button">取消</button>
+                <button id="member-tag-create-save" type="button">新增標籤</button>
+              </div>
+            </div>
+            <div id="member-tag-options" class="tag-chips">
+              <p class="muted">尚無標籤，請先新增。</p>
+            </div>
+            <p class="error" id="member-account-error"></p>
+            <div class="modal-actions">
+              <button type="submit">儲存</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel hidden">
           <div class="section-head">
             <h3>偏好物種</h3>
             <button id="member-animal-open-btn" type="button" onclick="document.getElementById('member-animal-modal').classList.remove('hidden')">編輯</button>
@@ -82,29 +156,7 @@
             <span class="muted">尚未選擇</span>
           </div>
         </div>
-        <div class="panel">
-          <div class="page-head" style="margin-bottom: 12px">
-            <h3 style="margin: 0; font-size: 16px">優惠券</h3>
-            <button id="member-coupon-issue-btn" type="button" onclick="document.getElementById('member-coupon-modal').classList.remove('hidden')">發放</button>
-          </div>
-          <p class="error" id="member-coupon-error"></p>
-          <table>
-            <thead>
-              <tr>
-                <th>名稱</th>
-                <th>內容</th>
-                <th>狀態</th>
-                <th>到期</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="member-coupon-rows">
-              <tr>
-                <td colspan="5" class="empty">尚未持有優惠券</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+
         <div class="panel">
           <h3 style="margin: 0 0 12px; font-size: 16px">交易紀錄</h3>
           <table>
@@ -114,13 +166,14 @@
                 <th>分店</th>
                 <th>品項</th>
                 <th>金額</th>
+                <th>付款方式</th>
                 <th>狀態</th>
                 <th>時間</th>
               </tr>
             </thead>
             <tbody id="transaction-rows">
               <tr>
-                <td colspan="6" class="empty">尚無交易紀錄</td>
+                <td colspan="7" class="empty">尚無交易紀錄</td>
               </tr>
             </tbody>
           </table>
@@ -141,32 +194,62 @@
         </select>
         <label for="edit-birthday">生日</label>
         <input id="edit-birthday" name="birthday" type="date" />
-        <label for="edit-prepaid-feed">餌料寄杯</label>
-        <input id="edit-prepaid-feed" name="prepaidFeed" type="number" min="0" step="1" />
-        <label for="edit-stored-credit">儲值金</label>
-        <input id="edit-stored-credit" name="storedCredit" type="number" min="0" step="1" />
-        <div class="section-head">
-          <span class="label">標籤</span>
-          <button class="ghost" id="member-tag-add-btn" type="button">新增</button>
-        </div>
-        <div id="member-tag-create" class="hidden">
-          <label for="member-tag-new-name">名稱</label>
-          <input id="member-tag-new-name" />
-          <label for="member-tag-new-desc">說明</label>
-          <textarea id="member-tag-new-desc" placeholder="標籤說明"></textarea>
-          <p class="error" id="member-tag-create-error"></p>
-          <div class="modal-actions">
-            <button class="ghost" id="member-tag-create-cancel" type="button">取消</button>
-            <button id="member-tag-create-save" type="button">新增標籤</button>
-          </div>
-        </div>
-        <div id="member-tag-options" class="tag-list">
-          <p class="muted">尚無標籤，請先新增。</p>
-        </div>
         <p class="error" id="member-edit-error"></p>
         <div class="modal-actions">
           <button class="ghost" id="member-edit-cancel-btn" type="button" onclick="document.getElementById('member-edit-modal').classList.add('hidden')">取消</button>
           <button type="submit">儲存</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="member-feed-modal" class="modal-backdrop hidden">
+      <form class="modal" id="member-feed-form">
+        <h3>編輯餌料寄杯</h3>
+        <label for="feed-prepaid">餌料寄杯</label>
+        <input id="feed-prepaid" name="prepaidFeed" type="number" min="0" step="1" required />
+        <p class="error" id="member-feed-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="member-feed-cancel-btn" type="button">取消</button>
+          <button type="submit">儲存</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="member-credit-modal" class="modal-backdrop hidden">
+      <form class="modal" id="member-credit-form">
+        <h3>調整點數</h3>
+        <p class="hint">目前餘額：<strong id="credit-current-balance">0</strong> 點</p>
+        <label for="credit-amount">金額</label>
+        <div class="credit-amount-row">
+          <div class="credit-tabs" role="tablist" aria-label="調整方式">
+            <button
+              class="credit-tab is-active"
+              id="credit-tab-add"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-direction="add"
+            >
+              增加
+            </button>
+            <button
+              class="credit-tab"
+              id="credit-tab-subtract"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-direction="subtract"
+            >
+              扣除
+            </button>
+          </div>
+          <input id="credit-amount" name="amount" type="number" min="1" step="1" required />
+          <input type="hidden" name="direction" id="credit-direction" value="add" />
+        </div>
+        <p class="error" id="member-credit-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="member-credit-cancel-btn" type="button">取消</button>
+          <button type="submit" id="credit-submit-btn">增加</button>
         </div>
       </form>
     </div>
@@ -192,9 +275,7 @@
         <select id="member-coupon-id" name="couponId" required>
           <option value="">請選擇優惠券</option>
         </select>
-        <label for="member-coupon-expires">到期日</label>
-        <input id="member-coupon-expires" name="expiresAt" type="date" />
-        <p class="hint">空白則使用券種結束日。</p>
+        <p class="hint">到期日依券種設定（固定截止日，或發放後 N 天）。</p>
         <p class="error" id="member-coupon-modal-error"></p>
         <div class="modal-actions">
           <button class="ghost" id="member-coupon-cancel-btn" type="button" onclick="document.getElementById('member-coupon-modal').classList.add('hidden')">取消</button>

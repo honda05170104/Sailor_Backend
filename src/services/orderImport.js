@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx';
+
 export function normalizeMobile(value) {
   let digits = String(value || '').replace(/\D/g, '');
 
@@ -91,6 +93,45 @@ export function csvToObjects(text) {
     });
     return record;
   });
+}
+
+export function xlsxToObjects(buffer) {
+  const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, {
+    defval: '',
+    raw: false,
+  });
+
+  return rows.map((row) => {
+    const record = {};
+    for (const [key, value] of Object.entries(row || {})) {
+      record[String(key).trim()] = value == null ? '' : String(value).trim();
+    }
+    return record;
+  });
+}
+
+/** Parse uploaded import file (csv / txt / xlsx). */
+export function parseImportFile(file) {
+  if (!file?.buffer) return [];
+
+  const name = String(file.originalname || '').toLowerCase();
+  const mime = String(file.mimetype || '').toLowerCase();
+  const isXlsx =
+    name.endsWith('.xlsx') ||
+    name.endsWith('.xls') ||
+    mime.includes('spreadsheetml') ||
+    mime === 'application/vnd.ms-excel';
+
+  if (isXlsx) {
+    return xlsxToObjects(file.buffer);
+  }
+
+  return csvToObjects(file.buffer.toString('utf8'));
 }
 
 export function toNumber(value) {

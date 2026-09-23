@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>優惠活動｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/shared/shared.css" />
+    <link rel="stylesheet" href="/promotions/promotions.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-members" href="/members">會員</a>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" class="active" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
+        <button class="link" id="logout-btn" type="button">登出</button>
+
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>優惠活動</h2>
+        </div>
+        <p class="page-desc">固定三種活動：入會禮、升等禮、生日禮。啟用後會自動發放綁定的優惠券。</p>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>類型</th>
+                <th>名稱</th>
+                <th>綁定優惠券</th>
+                <th>狀態</th>
+                <th>說明</th>
+              </tr>
+            </thead>
+            <tbody id="promotion-rows">
+              <tr>
+                <td colspan="5" class="empty">載入中…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="promotion-modal" class="modal-backdrop hidden">
+      <form class="modal" id="promotion-form">
+        <h3 id="promotion-modal-title">編輯優惠活動</h3>
+        <p class="hint" id="promotion-type-hint"></p>
+        <label class="check">
+          <input id="promotion-enabled" name="enabled" type="checkbox" checked />
+          啟用
+        </label>
+        <label for="promotion-name">名稱</label>
+        <input id="promotion-name" name="name" required />
+        <label for="promotion-coupon">綁定優惠券</label>
+        <select id="promotion-coupon" name="couponId" required>
+          <option value="">請選擇</option>
+        </select>
+        <label for="promotion-description">說明</label>
+        <textarea id="promotion-description" name="description" placeholder="活動說明"></textarea>
+        <p class="hint">到期日依綁定優惠券設定（固定起迄日，或發放後 N 天）。入會禮：首次 LINE 加入時發放。升等禮：每次升等各一次。生日禮：生日當月 1 號凌晨排程發放，每年一次。</p>
+        <p class="error" id="promotion-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="promotion-cancel-btn" type="button">取消</button>
+          <button type="submit" id="promotion-submit-btn">儲存</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/shared/shared.js"></script>
+    <script src="/promotions/promotions.js"></script>
+  </body>
+</html>

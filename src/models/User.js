@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 
+import { getVipById } from '../data/vips.js';
+
 const REQUIRED_PROFILE_FIELDS = ['birthday', 'mobile'];
 
 const userSchema = new mongoose.Schema(
@@ -31,7 +33,6 @@ const userSchema = new mongoose.Schema(
     },
     vip: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Vip',
       index: true,
     },
     totalSpend: {
@@ -49,6 +50,11 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    /** Current VIP membership end date (spend tier 1yr, or gold-protect end). */
+    vipExpiresAt: {
+      type: Date,
+      default: null,
+    },
     tags: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
       default: [],
@@ -56,6 +62,10 @@ const userSchema = new mongoose.Schema(
     animals: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Animal' }],
       default: [],
+    },
+    lastUsedAt: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true, versionKey: false }
@@ -89,13 +99,11 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     birthday: this.birthday,
     mobile: this.mobile,
     avatarUrl: this.avatarUrl,
-    vip:
-      this.vip && typeof this.vip.toSafeJSON === 'function'
-        ? this.vip.toSafeJSON()
-        : this.vip || null,
+    vip: getVipById(this.vip),
     totalSpend: this.totalSpend || 0,
     prepaidFeed: this.prepaidFeed || 0,
     storedCredit: this.storedCredit || 0,
+    vipExpiresAt: this.vipExpiresAt || null,
     tags: Array.isArray(this.tags)
       ? this.tags.map((tag) =>
           tag && typeof tag.toSafeJSON === 'function' ? tag.toSafeJSON() : tag
@@ -109,6 +117,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
         )
       : [],
     profileCompleteness: this.getProfileCompleteness(),
+    lastUsedAt: this.lastUsedAt || null,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

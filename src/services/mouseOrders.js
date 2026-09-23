@@ -1,6 +1,6 @@
 import MouseOrderLine from '../models/MouseOrderLine.js';
 import MouseOrderWeek from '../models/MouseOrderWeek.js';
-import AppError from './AppError.js';
+import AppError from '../utils/AppError.js';
 import { ErrorCode } from '../constants/codes.js';
 import { mouseOrderWindow, parseYmd, zonedInstant, addDays, ymdFromParts } from './globalConfig.js';
 import { mouseCatalog, parseMouseItems, summarizeLines } from './mice.js';

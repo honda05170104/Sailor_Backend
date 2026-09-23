@@ -10,6 +10,8 @@ import * as couponController from "../controllers/coupon.controller.js";
 import * as animalController from "../controllers/animal.controller.js";
 import * as configController from "../controllers/config.controller.js";
 import * as mouseController from "../controllers/mouse.controller.js";
+import * as bannerController from "../controllers/banner.controller.js";
+import * as promotionController from "../controllers/promotion.controller.js";
 
 const router = express.Router();
 
@@ -18,7 +20,6 @@ router.post("/logout", managerAuth, managerController.logout);
 router.get("/me", managerAuth, managerController.me);
 
 router.get("/branches", managerAuth, branchController.list);
-router.post("/branches", managerAuth, branchController.create);
 router.get("/users", managerAuth, memberController.list);
 router.get("/users/:id", managerAuth, memberController.get);
 router.post("/users/:id", managerAuth, memberController.update);
@@ -28,11 +29,16 @@ router.post("/user-coupons/:id/use", managerAuth, couponController.use);
 router.post(
   "/transactions/import",
   managerAuth,
+  transactionController.uploadImportFile,
   transactionController.importOrders,
 );
 router.get("/vips", managerAuth, vipController.list);
-router.post("/vips", managerAuth, vipController.create);
-router.post("/vips/:id", managerAuth, vipController.update);
+router.post("/vips/run-daily-sync", managerAuth, vipController.runDailySync);
+router.post(
+  "/vips/run-daily-cashback",
+  managerAuth,
+  vipController.runDailyCashback,
+);
 router.get("/tags", managerAuth, tagController.list);
 router.post("/tags", managerAuth, tagController.create);
 router.post("/tags/:id", managerAuth, tagController.update);
@@ -63,5 +69,27 @@ router.get("/config", managerAuth, configController.get);
 router.post("/config", managerAuth, configController.update);
 
 router.get("/mice/week", managerAuth, mouseController.getWeek);
+
+router.get("/banners", managerAuth, bannerController.list);
+router.post(
+  "/banners",
+  managerAuth,
+  bannerController.uploadBannerImage,
+  bannerController.create,
+);
+router.post(
+  "/banners/:id",
+  managerAuth,
+  bannerController.uploadBannerImage,
+  bannerController.update,
+);
+router.post(
+  "/banners/:id/delete",
+  managerAuth,
+  bannerController.remove,
+);
+
+router.get("/promotions", managerAuth, promotionController.list);
+router.post("/promotions/:id", managerAuth, promotionController.update);
 
 export default router;

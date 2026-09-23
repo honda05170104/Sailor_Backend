@@ -1,4 +1,4 @@
-import AppError from './AppError.js';
+import AppError from '../utils/AppError.js';
 import { ErrorCode } from '../constants/codes.js';
 import {
   MOUSE_FORMS,

@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>會員等級｜水手 會員管理系統</title>
-    <link rel="stylesheet" href="/shared/shared.css" />
-    <link rel="stylesheet" href="/vips/vips.css" />
+    <title>VIP 規則｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/vips.css" />
   </head>
   <body>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
@@ -13,61 +13,39 @@
       <aside>
         <h1>水手 會員管理系統</h1>
         <a id="nav-members" href="/members">會員</a>
-        <a id="nav-branches" href="/branches">分店</a>
-        <a id="nav-vips" class="active" href="/vips">會員等級</a>
-        <a id="nav-coupons" href="/coupons">優惠券</a>
-        <a id="nav-products" href="/products">物種</a>
-        <a id="nav-mice" href="/mice">老鼠訂單</a>
-        <a id="nav-settings" href="/settings">系統設定</a>
-        <button class="link" id="logout-btn" type="button">登出</button>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" class="active" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
+        <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+
         <div class="who" id="who"></div>
       </aside>
       <main>
         <div class="page-head">
-          <h2>會員等級</h2>
-          <button id="vip-open-btn" type="button" onclick="document.getElementById('vip-modal').classList.remove('hidden')">新增</button>
+          <h2>VIP 規則</h2>
         </div>
         <div class="panel">
-          <table>
-            <thead>
-              <tr>
-                <th>名稱</th>
-                <th>代碼</th>
-                <th>等級</th>
-                <th>消費門檻</th>
-              </tr>
-            </thead>
-            <tbody id="vip-rows">
-              <tr>
-                <td colspan="4" class="empty">尚無會員等級</td>
-              </tr>
-            </tbody>
-          </table>
+          <p class="error" id="vip-rules-error"></p>
+          <div id="vip-rules" class="vip-rules">
+            <p class="muted">載入中…</p>
+          </div>
         </div>
       </main>
     </div>
-
-    <div id="vip-modal" class="modal-backdrop hidden">
-      <form class="modal" id="vip-form">
-        <h3 id="vip-modal-title">新增會員等級</h3>
-        <label for="vip-name">名稱</label>
-        <input id="vip-name" name="name" required />
-        <label for="vip-slug">代碼</label>
-        <input id="vip-slug" name="slug" placeholder="gold" />
-        <label for="vip-rank">等級</label>
-        <input id="vip-rank" name="rank" type="number" min="1" step="1" required />
-        <label for="vip-min-spend">消費門檻</label>
-        <input id="vip-min-spend" name="minSpend" type="number" min="0" step="1" value="0" />
-        <p class="hint">代碼空白會依名稱自動產生。等級數字越大越高，消費門檻用來自動升級。</p>
-        <p class="error" id="vip-error"></p>
-        <div class="modal-actions">
-          <button class="ghost" id="vip-cancel-btn" type="button" onclick="document.getElementById('vip-modal').classList.add('hidden')">取消</button>
-          <button type="submit" id="vip-submit-btn">新增</button>
-        </div>
-      </form>
-    </div>
-
-    <script src="/shared/shared.js"></script>
-    <script src="/vips/vips.js"></script>
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/vips.js"></script>
   </body>
 </html>

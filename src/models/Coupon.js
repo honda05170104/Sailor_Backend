@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
-import { COUPON_TYPES } from '../utils/coupons.js';
+import {
+  COUPON_TYPES,
+  COUPON_EXPIRY_MODES,
+  COUPON_CATEGORIES,
+  normalizeExpiryMode,
+  normalizeCouponCategory,
+} from '../services/coupons.js';
 
 const couponSchema = new mongoose.Schema(
   {
@@ -28,6 +34,19 @@ const couponSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    /** general | upgrade | birthday — for admin filters (入會禮歸升等禮) */
+    category: {
+      type: String,
+      enum: COUPON_CATEGORIES,
+      default: 'general',
+      index: true,
+    },
+    /** fixed: startsAt + endsAt | relative: expireDays after issue */
+    expiryMode: {
+      type: String,
+      enum: COUPON_EXPIRY_MODES,
+      default: 'fixed',
+    },
     startsAt: {
       type: Date,
       default: null,
@@ -35,6 +54,11 @@ const couponSchema = new mongoose.Schema(
     endsAt: {
       type: Date,
       default: null,
+    },
+    expireDays: {
+      type: Number,
+      default: null,
+      min: 1,
     },
     enabled: {
       type: Boolean,
@@ -46,6 +70,7 @@ const couponSchema = new mongoose.Schema(
 );
 
 couponSchema.methods.toSafeJSON = function toSafeJSON() {
+  const expiryMode = normalizeExpiryMode(this);
   return {
     id: this._id,
     name: this.name,
@@ -53,8 +78,11 @@ couponSchema.methods.toSafeJSON = function toSafeJSON() {
     type: this.type,
     value: this.value,
     minSpend: this.minSpend || 0,
-    startsAt: this.startsAt || null,
-    endsAt: this.endsAt || null,
+    category: normalizeCouponCategory(this.category),
+    expiryMode,
+    startsAt: expiryMode === 'fixed' ? this.startsAt || null : null,
+    endsAt: expiryMode === 'fixed' ? this.endsAt || null : null,
+    expireDays: expiryMode === 'relative' ? this.expireDays || null : null,
     enabled: this.enabled !== false,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,

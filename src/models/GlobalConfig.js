@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { DEFAULT_TIMES } from '../utils/globalConfig.js';
+import { DEFAULT_TIMES } from '../services/globalConfig.js';
 
 const mouseOrderTimeSchema = new mongoose.Schema(
   {

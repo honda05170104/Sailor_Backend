@@ -7,6 +7,7 @@ const {
   lineStatusHtml,
   couponTypeLabel,
   couponValueText,
+  couponSourceLabel,
   formatDay,
   formatDate,
   branchName,
@@ -19,6 +20,14 @@ const memberCouponModalError = document.getElementById("member-coupon-modal-erro
 const memberEditForm = document.getElementById("member-edit-form");
 const memberEditModal = document.getElementById("member-edit-modal");
 const memberEditError = document.getElementById("member-edit-error");
+const memberFeedForm = document.getElementById("member-feed-form");
+const memberFeedModal = document.getElementById("member-feed-modal");
+const memberFeedError = document.getElementById("member-feed-error");
+const memberCreditForm = document.getElementById("member-credit-form");
+const memberCreditModal = document.getElementById("member-credit-modal");
+const memberCreditError = document.getElementById("member-credit-error");
+const memberAccountForm = document.getElementById("member-account-form");
+const memberAccountError = document.getElementById("member-account-error");
 const memberAnimalForm = document.getElementById("member-animal-form");
 const memberAnimalModal = document.getElementById("member-animal-modal");
 const memberAnimalError = document.getElementById("member-animal-error");
@@ -40,7 +49,7 @@ function hideMemberTagCreate() {
 }
 
 function selectedMemberTagIds() {
-  return [...memberEditForm.querySelectorAll('input[name="tagIds"]:checked')].map(
+  return [...memberAccountForm.querySelectorAll('input[name="tagIds"]:checked')].map(
     (input) => input.value
   );
 }
@@ -107,15 +116,15 @@ function renderMemberTagOptions(tags, selected) {
   }
 
   options.innerHTML = tags
-    .map(
-      (tag) =>
-        `<label>
+    .map((tag) => {
+      const on = selectedSet.has(String(tag.id));
+      return `<label class="tag-chip${on ? " is-on" : ""}">
           <input type="checkbox" name="tagIds" value="${escapeHtml(tag.id)}" ${
-            selectedSet.has(String(tag.id)) ? "checked" : ""
+            on ? "checked" : ""
           } />
           ${escapeHtml(tag.name)}
-        </label>`
-    )
+        </label>`;
+    })
     .join("");
 }
 
@@ -182,28 +191,63 @@ async function openMemberCouponModal() {
 
 async function openMemberEditModal() {
   memberEditError.textContent = "";
-  hideMemberTagCreate();
   const user = currentMember || {};
   memberEditForm.displayName.value = user.displayName || "";
   memberEditForm.mobile.value = user.mobile || "";
   memberEditForm.birthday.value = user.birthday || "";
-  memberEditForm.prepaidFeed.value = user.prepaidFeed ?? 0;
-  memberEditForm.storedCredit.value = user.storedCredit ?? 0;
-  const [tags, vips] = await Promise.all([
-    fetchTags(),
-    fetchVips(),
-  ]);
+  const vips = await fetchVips();
   fillVipSelect(vips, user.vip?.id || user.vip);
-  renderMemberTagOptions(
-    tags,
-    (user.tags || []).map((tag) => tag.id)
-  );
   memberEditModal.classList.remove("hidden");
 }
 
 function closeMemberEditModal() {
   memberEditModal.classList.add("hidden");
-  hideMemberTagCreate();
+}
+
+async function fillAccountForm(user) {
+  document.getElementById("member-prepaid-feed").textContent = user.prepaidFeed ?? 0;
+  document.getElementById("member-stored-credit").textContent = user.storedCredit ?? 0;
+  const tags = await fetchTags();
+  renderMemberTagOptions(
+    tags,
+    (user.tags || []).map((tag) => tag.id)
+  );
+}
+
+async function openMemberFeedModal() {
+  memberFeedError.textContent = "";
+  memberFeedForm.prepaidFeed.value = currentMember?.prepaidFeed ?? 0;
+  memberFeedModal.classList.remove("hidden");
+}
+
+function closeMemberFeedModal() {
+  memberFeedModal.classList.add("hidden");
+}
+
+async function openMemberCreditModal() {
+  memberCreditError.textContent = "";
+  memberCreditForm.reset();
+  memberCreditForm.amount.value = "";
+  setCreditDirection("add");
+  document.getElementById("credit-current-balance").textContent =
+    currentMember?.storedCredit ?? 0;
+  memberCreditModal.classList.remove("hidden");
+}
+
+function setCreditDirection(direction) {
+  const next = direction === "subtract" ? "subtract" : "add";
+  document.getElementById("credit-direction").value = next;
+  document.querySelectorAll(".credit-tab").forEach((tab) => {
+    const active = tab.dataset.direction === next;
+    tab.classList.toggle("is-active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.getElementById("credit-submit-btn").textContent =
+    next === "subtract" ? "扣除" : "增加";
+}
+
+function closeMemberCreditModal() {
+  memberCreditModal.classList.add("hidden");
 }
 
 async function openMemberAnimalModal() {
@@ -226,24 +270,35 @@ function renderMemberCoupons(coupons) {
   document.getElementById("member-coupon-error").textContent = "";
 
   if (!coupons.length) {
-    rows.innerHTML = '<tr><td colspan="5" class="empty">尚未持有優惠券</td></tr>';
+    rows.innerHTML = '<p class="muted coupon-empty">尚未持有優惠券</p>';
     return;
   }
 
   rows.innerHTML = coupons
     .map((coupon) => {
       const canUse = coupon.status === "available";
-      return `<tr>
-        <td>${escapeHtml(coupon.name)}</td>
-        <td>${escapeHtml(couponTypeLabel(coupon.type))} ${escapeHtml(couponValueText(coupon))}</td>
-        <td>${escapeHtml(COUPON_STATUS_LABELS[coupon.status] || coupon.status)}</td>
-        <td>${escapeHtml(formatDay(coupon.expiresAt))}</td>
-        <td>${
-          canUse
-            ? `<button class="ghost" type="button" data-use-coupon="${escapeHtml(coupon.id)}" data-use-name="${escapeHtml(coupon.name)}">核銷</button>`
-            : ""
-        }</td>
-      </tr>`;
+      const statusClass =
+        coupon.status === "available"
+          ? "is-available"
+          : coupon.status === "used"
+            ? "is-used"
+            : "is-expired";
+      return `<article class="coupon-card ${statusClass}">
+        <div class="coupon-card-top">
+          <div class="coupon-card-meta">
+            <span class="coupon-card-source">${escapeHtml(couponSourceLabel(coupon))}</span>
+            <span class="coupon-card-status">${escapeHtml(COUPON_STATUS_LABELS[coupon.status] || coupon.status)}</span>
+          </div>
+          ${
+            canUse
+              ? `<button class="ghost" type="button" data-use-coupon="${escapeHtml(coupon.id)}" data-use-name="${escapeHtml(coupon.name)}">核銷</button>`
+              : ""
+          }
+        </div>
+        <h4 class="coupon-card-name">${escapeHtml(coupon.name)}</h4>
+        <p class="coupon-card-value">${escapeHtml(couponTypeLabel(coupon.type))} ${escapeHtml(couponValueText(coupon))}</p>
+        <p class="coupon-card-expire">到期 ${escapeHtml(formatDay(coupon.expiresAt))}</p>
+      </article>`;
     })
     .join("");
 }
@@ -253,17 +308,10 @@ function renderMemberDetail(user, transactions, coupons) {
   document.getElementById("member-name").textContent = user.displayName || "會員詳情";
   document.getElementById("member-mobile").textContent = user.mobile || "—";
   document.getElementById("member-line").innerHTML = lineStatusHtml(user);
+  document.getElementById("member-last-used").textContent = formatDate(user.lastUsedAt);
   document.getElementById("member-birthday").textContent = user.birthday || "—";
   document.getElementById("member-vip").textContent = vipName(user);
   document.getElementById("member-spend").textContent = user.totalSpend ?? 0;
-  document.getElementById("member-prepaid-feed").textContent = user.prepaidFeed ?? 0;
-  document.getElementById("member-stored-credit").textContent = user.storedCredit ?? 0;
-
-  const tagBox = document.getElementById("member-tags");
-  const tags = user.tags || [];
-  tagBox.innerHTML = tags.length
-    ? tags.map((tag) => `<span class="chip">${escapeHtml(tag.name)}</span>`).join("")
-    : '<span class="muted">尚無標籤</span>';
 
   const productBox = document.getElementById("member-products");
   const animals = user.animals || [];
@@ -284,21 +332,37 @@ function renderMemberDetail(user, transactions, coupons) {
 
   const rows = document.getElementById("transaction-rows");
   if (!transactions.length) {
-    rows.innerHTML = '<tr><td colspan="6" class="empty">尚無交易紀錄</td></tr>';
+    rows.innerHTML = '<tr><td colspan="7" class="empty">尚無交易紀錄</td></tr>';
     return;
   }
 
   rows.innerHTML = transactions
     .map((tx) => {
       const items = (tx.items || [])
-        .map((item) => `${item.name || "未命名"} × ${item.quantity ?? 0}`)
+        .map((item) => {
+          const name = item.name || "未命名";
+          if (
+            name === "點數增加" ||
+            name === "點數扣除" ||
+            name === "點數兌換" ||
+            name === "點數回饋" ||
+            name === "現金回饋" ||
+            name === "儲值金增加" ||
+            name === "儲值金扣除"
+          ) {
+            return name;
+          }
+          if (name === "儲值金增加" || name === "儲值金扣除") return name;
+          return `${name} × ${item.quantity ?? 0}`;
+        })
         .join("、");
       return `<tr>
-        <td>${escapeHtml(tx.orderNo || tx.externalOrderId || "—")}</td>
+        <td>${escapeHtml(tx.txnNo || "—")}</td>
         <td>${escapeHtml(branchName(tx))}</td>
         <td>${escapeHtml(items || "無品項")}</td>
         <td>${escapeHtml(tx.totalAmount ?? 0)}</td>
-        <td>${escapeHtml(tx.orderStatus || "—")}</td>
+        <td>${escapeHtml(tx.paymentMethod || "—")}</td>
+        <td>${escapeHtml(tx.orderStatusLabel || tx.orderStatus || "—")}</td>
         <td>${escapeHtml(formatDate(tx.createdAt || tx.importedAt))}</td>
       </tr>`;
     })
@@ -309,6 +373,11 @@ async function loadMemberDetail(id) {
   try {
     const data = await api(`/users/${id}`);
     renderMemberDetail(data.user, data.transactions || [], data.coupons || []);
+    try {
+      await fillAccountForm(data.user);
+    } catch (error) {
+      memberAccountError.textContent = error.message;
+    }
   } catch (error) {
     document.getElementById("member-name").textContent = "找不到會員";
     document.getElementById("transaction-rows").innerHTML =
@@ -345,7 +414,6 @@ document.getElementById("member-coupon-issue-btn").addEventListener("click", asy
         toast: "優惠券已發放",
         body: JSON.stringify({
           couponId: memberCouponForm.couponId.value,
-          expiresAt: memberCouponForm.expiresAt.value,
         }),
       });
       closeMemberCouponModal();
@@ -377,6 +445,12 @@ document.getElementById("member-coupon-issue-btn").addEventListener("click", asy
   document.getElementById("member-tag-add-btn").addEventListener("click", () => {
     memberTagCreateError.textContent = "";
     memberTagCreate.classList.toggle("hidden");
+  });
+
+  memberTagCreate.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && event.target.tagName !== "TEXTAREA") {
+      event.preventDefault();
+    }
   });
 
   document.getElementById("member-tag-create-cancel").addEventListener("click", () => {
@@ -424,7 +498,131 @@ document.getElementById("member-coupon-issue-btn").addEventListener("click", asy
   });
 
 bindModalDismiss(memberEditModal, closeMemberEditModal);
+bindModalDismiss(memberFeedModal, closeMemberFeedModal);
+bindModalDismiss(memberCreditModal, closeMemberCreditModal);
 bindModalDismiss(memberAnimalModal, closeMemberAnimalModal);
+
+document.getElementById("member-tag-options").addEventListener("change", (event) => {
+  const input = event.target.closest('input[name="tagIds"]');
+  if (!input) return;
+  input.closest(".tag-chip")?.classList.toggle("is-on", input.checked);
+});
+
+document.getElementById("member-feed-open-btn").addEventListener("click", async () => {
+  try {
+    await openMemberFeedModal();
+  } catch (error) {
+    memberFeedError.textContent = error.message;
+    memberFeedModal.classList.remove("hidden");
+  }
+});
+
+document.getElementById("member-feed-cancel-btn").addEventListener("click", () => {
+  closeMemberFeedModal();
+});
+
+memberFeedForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  memberFeedError.textContent = "";
+
+  if (!currentMember?.id) {
+    memberFeedError.textContent = "找不到會員";
+    return;
+  }
+
+  const prepaidFeed = Number(memberFeedForm.prepaidFeed.value);
+  if (prepaidFeed === (currentMember.prepaidFeed ?? 0)) {
+    closeMemberFeedModal();
+    return;
+  }
+
+  try {
+    await api(`/users/${currentMember.id}`, {
+      method: "POST",
+      toast: "餌料寄杯已更新",
+      body: JSON.stringify({ prepaidFeed }),
+    });
+    closeMemberFeedModal();
+    await loadMemberDetail(currentMember.id);
+  } catch (error) {
+    memberFeedError.textContent = error.message;
+  }
+});
+
+document.getElementById("member-credit-open-btn").addEventListener("click", async () => {
+  try {
+    await openMemberCreditModal();
+  } catch (error) {
+    memberCreditError.textContent = error.message;
+    memberCreditModal.classList.remove("hidden");
+  }
+});
+
+document.getElementById("member-credit-cancel-btn").addEventListener("click", () => {
+  closeMemberCreditModal();
+});
+
+document.querySelectorAll(".credit-tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    setCreditDirection(tab.dataset.direction);
+  });
+});
+
+memberCreditForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  memberCreditError.textContent = "";
+
+  if (!currentMember?.id) {
+    memberCreditError.textContent = "找不到會員";
+    return;
+  }
+
+  const amount = Number(memberCreditForm.amount.value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    memberCreditError.textContent = "請輸入大於 0 的金額";
+    return;
+  }
+
+  const direction = document.getElementById("credit-direction").value;
+  const delta = direction === "subtract" ? -amount : amount;
+
+  try {
+    await api(`/users/${currentMember.id}`, {
+      method: "POST",
+      toast: direction === "subtract" ? "已扣除點數" : "已增加點數",
+      body: JSON.stringify({
+        storedCreditDelta: delta,
+      }),
+    });
+    closeMemberCreditModal();
+    await loadMemberDetail(currentMember.id);
+  } catch (error) {
+    memberCreditError.textContent = error.message;
+  }
+});
+
+memberAccountForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  memberAccountError.textContent = "";
+
+  if (!currentMember?.id) {
+    memberAccountError.textContent = "找不到會員";
+    return;
+  }
+
+  try {
+    await api(`/users/${currentMember.id}/tags`, {
+      method: "POST",
+      toast: "標籤已更新",
+      body: JSON.stringify({
+        tagIds: selectedMemberTagIds(),
+      }),
+    });
+    await loadMemberDetail(currentMember.id);
+  } catch (error) {
+    memberAccountError.textContent = error.message;
+  }
+});
 
 document.getElementById("member-animal-open-btn").addEventListener("click", async () => {
   try {
@@ -480,10 +678,7 @@ memberEditForm.addEventListener("submit", async (event) => {
         displayName: memberEditForm.displayName.value,
         mobile: memberEditForm.mobile.value,
         birthday: memberEditForm.birthday.value,
-        prepaidFeed: memberEditForm.prepaidFeed.value,
-        storedCredit: memberEditForm.storedCredit.value,
         vipId: memberEditForm.vipId.value,
-        tagIds: selectedMemberTagIds(),
       }),
     });
     closeMemberEditModal();

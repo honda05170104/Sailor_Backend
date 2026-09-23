@@ -54,7 +54,7 @@ export async function login({ username, password } = {}) {
   );
 
   if (!manager || !manager.verifyPassword(password)) {
-    throw new AppError('Invalid username or password', ErrorCode.UNAUTHORIZED);
+    throw new AppError('帳號或密碼錯誤', ErrorCode.UNAUTHORIZED);
   }
 
   const token = await issueManagerToken(manager);

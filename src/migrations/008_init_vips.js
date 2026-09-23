@@ -1,8 +1,10 @@
-import { DEFAULT_VIPS } from '../utils/vip.js';
+import { VIPS as DEFAULT_VIPS } from '../data/vips.js';
 
 export default {
   name: '008_init_vips',
   async up(db) {
+    // Legacy migration: VIP tiers are now hardcoded in src/data/vips.js.
+    // Keep indexes/backfill logic for historical runs; new deploys skip this.
     const vips = db.collection('vips');
     await vips.createIndex({ slug: 1 }, { unique: true });
     await vips.createIndex({ rank: 1 });
@@ -28,7 +30,7 @@ export default {
 
     const seeded = await vips.find().toArray();
     const bySlug = Object.fromEntries(seeded.map((vip) => [vip.slug, vip._id]));
-    const fallback = bySlug.bronze || seeded[0]?._id;
+    const fallback = bySlug.normal || bySlug.bronze || seeded[0]?._id;
     const users = db.collection('users');
 
     for (const [slug, vipId] of Object.entries(bySlug)) {

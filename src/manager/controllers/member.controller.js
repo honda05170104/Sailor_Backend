@@ -21,6 +21,10 @@ export const setTags = asyncHandler(async (req, res) => {
 });
 
 export const update = asyncHandler(async (req, res) => {
-  const data = await memberService.updateMember(req.params.id, req.body || {});
+  const data = await memberService.updateMember(
+    req.params.id,
+    req.body || {},
+    req.manager,
+  );
   return success(res, data);
 });

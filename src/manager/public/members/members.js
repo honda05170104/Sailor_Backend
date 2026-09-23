@@ -9,6 +9,8 @@
     bindModalDismiss,
     vipName,
     lineStatusHtml,
+    formatDate,
+    formatDay,
   } = M;
 
   const importForm = document.getElementById("import-form");
@@ -20,7 +22,7 @@
     const rows = document.getElementById("member-rows");
 
     if (!users.length) {
-      rows.innerHTML = `<tr><td colspan="6" class="empty">${
+      rows.innerHTML = `<tr><td colspan="8" class="empty">${
         document.getElementById("member-search").value.trim() ||
         document.getElementById("member-line-filter").value
           ? "找不到符合的會員"
@@ -40,7 +42,9 @@
         <td>${escapeHtml(user.displayName || "—")}</td>
         <td>${escapeHtml(user.birthday || "—")}</td>
         <td>${escapeHtml(vipName(user))}</td>
+        <td>${escapeHtml(formatDay(user.vipExpiresAt) || "—")}</td>
         <td>${lineStatusHtml(user)}</td>
+        <td>${escapeHtml(formatDate(user.lastUsedAt))}</td>
       </tr>`;
       })
       .join("");
@@ -146,13 +150,16 @@
     }
 
     try {
-      const csv = await file.text();
-      const data = await api("/transactions/import", {
+      const body = new FormData();
+      body.append("branchId", branchId);
+      body.append("file", file);
+      await api("/transactions/import", {
         method: "POST",
         toast: "匯入完成",
-        body: JSON.stringify({ csv, branchId }),
+        body,
       });
-      importResult.textContent = `匯入完成：新增 ${data.imported} 筆，新建會員 ${data.createdUsers}，沒電話 ${data.skippedNoMobile}，重複 ${data.skippedDuplicate}`;
+      closeImportModal();
+      await loadMembers();
     } catch (error) {
       importError.textContent = error.message;
     }

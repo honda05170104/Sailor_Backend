@@ -13,13 +13,24 @@
       <aside>
         <h1>水手 會員管理系統</h1>
         <a id="nav-members" href="/members">會員</a>
-        <a id="nav-branches" href="/branches">分店</a>
-        <a id="nav-vips" href="/vips">會員等級</a>
-        <a id="nav-coupons" href="/coupons">優惠券</a>
-        <a id="nav-products" href="/products">物種</a>
-        <a id="nav-mice" href="/mice">老鼠訂單</a>
-        <a id="nav-settings" class="active" href="/settings">系統設定</a>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" class="active" href="/settings">系統設定</a>
+          </div></div>
+        </div>
         <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>
+
         <div class="who" id="who"></div>
       </aside>
       <main>
@@ -34,8 +45,12 @@
             <label for="settings-timezone">時區</label>
             <input id="settings-timezone" name="timezone" required placeholder="Asia/Taipei" />
             <p class="hint">之後其他跟時間有關的規則也會放在這裡。預設是台北時間。</p>
+            <p class="error" id="settings-error"></p>
+            <div class="modal-actions">
+              <button type="submit" id="settings-save-btn">儲存</button>
+            </div>
           </div>
-          <div class="panel">
+          <div class="panel hidden" aria-hidden="true">
             <div class="section-head">
               <h3>訂購老鼠</h3>
             </div>
@@ -73,13 +88,26 @@
                 <input id="settings-arrive-offset" name="arriveOffsetWeeks" type="number" min="0" max="8" step="1" required />
               </div>
             </div>
-            <p class="hint">預設是週二 18:00 截止、同一週週四到貨。到貨日會從截止日往後算到指定星期；若截止當天就是到貨日，會算成同一天。已叫貨的週次不會被改到。</p>
-            <p class="error" id="settings-error"></p>
-            <div class="modal-actions">
-              <button type="submit" id="settings-save-btn">儲存</button>
-            </div>
           </div>
         </form>
+          <div class="panel">
+            <div class="section-head">
+              <h3>排程模擬</h3>
+            </div>
+            <p class="hint">
+              VIP 升降級：每天 12:00（台北）。點數回饋：每天 12:05，依各筆交易當日 VIP 計算，同一會員合併成一筆回饋交易。
+            </p>
+            <p class="error" id="vip-sync-error"></p>
+            <p class="hint" id="vip-sync-result"></p>
+            <div class="modal-actions">
+              <button type="button" id="vip-sync-btn">立即執行 VIP 升降級掃描</button>
+            </div>
+            <p class="error" id="cashback-sync-error"></p>
+            <p class="hint" id="cashback-sync-result"></p>
+            <div class="modal-actions">
+              <button type="button" id="cashback-sync-btn">立即執行點數回饋掃描</button>
+            </div>
+          </div>
       </main>
     </div>
     <script src="/assets/shared.js"></script>

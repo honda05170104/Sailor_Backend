@@ -1,4 +1,11 @@
 import mongoose from 'mongoose';
+import { getStoreById } from '../data/stores.js';
+import {
+  TRANSACTION_ORDER_STATUSES,
+  DEFAULT_TRANSACTION_ORDER_STATUS,
+  normalizeOrderStatus,
+  orderStatusLabel,
+} from '../services/transactions.js';
 
 const transactionItemSchema = new mongoose.Schema(
   {
@@ -22,16 +29,29 @@ const transactionSchema = new mongoose.Schema(
     },
     branch: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Branch',
       required: true,
       index: true,
     },
+    /** Sailor-generated order number shown in admin. */
+    txnNo: {
+      type: String,
+      trim: true,
+      required: true,
+      unique: true,
+      index: true,
+    },
     pickupNo: { type: String, trim: true, default: '' },
+    /** External / imported POS order number (not shown as 訂單編號). */
     orderNo: { type: String, trim: true, default: '', index: true },
     customerName: { type: String, trim: true, default: '' },
     customerMobile: { type: String, trim: true, default: '', index: true },
     source: { type: String, trim: true, default: '' },
-    orderStatus: { type: String, trim: true, default: '' },
+    orderStatus: {
+      type: String,
+      enum: TRANSACTION_ORDER_STATUSES,
+      default: DEFAULT_TRANSACTION_ORDER_STATUS,
+      index: true,
+    },
     paymentStatus: { type: String, trim: true, default: '' },
     shippingStatus: { type: String, trim: true, default: '' },
     tags: { type: String, trim: true, default: '' },
@@ -43,6 +63,10 @@ const transactionSchema = new mongoose.Schema(
     externalOrderId: { type: String, trim: true, default: '', index: true },
     items: { type: [transactionItemSchema], default: [] },
     importedAt: { type: Date, default: Date.now },
+    /** When points cashback was applied; null = pending daily cashback job. */
+    cashbackAt: { type: Date, default: null, index: true },
+    /** Points granted from this spend order (0 if none / not yet processed). */
+    cashbackPoints: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true, versionKey: false }
 );
@@ -50,22 +74,21 @@ const transactionSchema = new mongoose.Schema(
 transactionSchema.index({ branch: 1, externalOrderId: 1 }, { unique: true });
 
 transactionSchema.methods.toSafeJSON = function toSafeJSON() {
-  const branch = this.branch;
-  const branchJSON =
-    branch && typeof branch === 'object' && branch.name != null
-      ? { id: branch._id, name: branch.name, type: branch.type }
-      : branch;
+  const store = getStoreById(this.branch);
+  const orderStatus = normalizeOrderStatus(this.orderStatus);
 
   return {
     id: this._id,
     user: this.user,
-    branch: branchJSON,
+    branch: store || (this.branch ? { id: this.branch, name: '—' } : null),
+    txnNo: this.txnNo || '',
     pickupNo: this.pickupNo,
     orderNo: this.orderNo,
     customerName: this.customerName,
     customerMobile: this.customerMobile,
     source: this.source,
-    orderStatus: this.orderStatus,
+    orderStatus,
+    orderStatusLabel: orderStatusLabel(orderStatus),
     paymentStatus: this.paymentStatus,
     shippingStatus: this.shippingStatus,
     tags: this.tags,
@@ -77,6 +100,8 @@ transactionSchema.methods.toSafeJSON = function toSafeJSON() {
     externalOrderId: this.externalOrderId,
     items: this.items,
     importedAt: this.importedAt,
+    cashbackAt: this.cashbackAt || null,
+    cashbackPoints: this.cashbackPoints || 0,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };
