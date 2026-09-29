@@ -110,6 +110,47 @@
   font-weight: 600;
 }
 
+.expiry-field {
+  margin-bottom: 14px;
+}
+
+.expiry-field input {
+  margin-bottom: 0;
+}
+
+.expiry-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-bottom: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg, #f6f6f6);
+}
+
+.expiry-tab {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.expiry-tab + .expiry-tab {
+  border-left: 1px solid var(--line);
+}
+
+.expiry-tab.is-active {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
 .account-grid .label {
   margin: 0;
 }

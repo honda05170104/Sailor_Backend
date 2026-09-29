@@ -9,6 +9,8 @@ import { normalizeMobile } from "../../services/orderImport.js";
 import { listUserCoupons } from "./coupon.service.js";
 import { requireStore, defaultStore } from "../../data/stores.js";
 import { requireVip } from "../../data/vips.js";
+import { getLifetimeSpend } from "../../services/vip.js";
+import { zonedInstant, zonedParts } from "../../services/globalConfig.js";
 import {
   DEFAULT_TRANSACTION_ORDER_STATUS,
   generateTxnNo,
@@ -191,6 +193,32 @@ function toNonNegativeNumber(value, field) {
   return n;
 }
 
+const VIP_EXPIRY_TIME_ZONE = "Asia/Taipei";
+
+function parseVipExpiryDay(value) {
+  const raw = String(value || "").trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!match) {
+    throw new AppError(
+      { field: "vipExpiresAt", message: "請選擇會員效期" },
+      ErrorCode.BAD_REQUEST,
+    );
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = zonedInstant(VIP_EXPIRY_TIME_ZONE, year, month, day, 23, 59, 59);
+  const parts = zonedParts(date, VIP_EXPIRY_TIME_ZONE);
+  if (parts.year !== year || parts.month !== month || parts.day !== day) {
+    throw new AppError(
+      { field: "vipExpiresAt", message: "會員效期不是有效日期" },
+      ErrorCode.BAD_REQUEST,
+    );
+  }
+  return date;
+}
+
 function toFiniteNumber(value, field) {
   const n = Number(value);
   if (!Number.isFinite(n)) {
@@ -275,6 +303,19 @@ export async function updateMember(id, payload = {}, manager) {
     user.vip = vip._id;
   }
 
+  if (payload.vipExpiresForever === true) {
+    user.vipExpiresForever = true;
+    user.vipExpiresManual = true;
+    user.vipExpiresAt = null;
+  } else if (
+    payload.vipExpiresForever === false ||
+    payload.vipExpiresAt !== undefined
+  ) {
+    user.vipExpiresForever = false;
+    user.vipExpiresManual = true;
+    user.vipExpiresAt = parseVipExpiryDay(payload.vipExpiresAt);
+  }
+
   if (payload.tagIds !== undefined) {
     await applyTagIds(user, payload.tagIds);
   }
@@ -285,9 +326,8 @@ export async function updateMember(id, payload = {}, manager) {
     await user.save();
   }
 
-  const creditChanged =
-    (user.storedCredit || 0) !== beforeBalance.storedCredit;
-  if (creditChanged) {
+  const creditDelta = (user.storedCredit || 0) - beforeBalance.storedCredit;
+  if (creditDelta !== 0) {
     try {
       await recordBalanceAdjustment(user, beforeBalance, {
         branchId: payload.branchId,
@@ -298,6 +338,10 @@ export async function updateMember(id, payload = {}, manager) {
       user.storedCredit = beforeBalance.storedCredit;
       await user.save();
       throw error;
+    }
+    if (creditDelta > 0) {
+      user.totalSpend = await getLifetimeSpend(user._id);
+      await user.save();
     }
   }
 

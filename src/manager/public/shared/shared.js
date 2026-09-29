@@ -210,6 +210,11 @@ function formatDay(value) {
   return toDateInput(value) || "—";
 }
 
+function formatVipExpiry(user) {
+  if (user?.vipExpiresForever) return "永遠";
+  return formatDay(user?.vipExpiresAt);
+}
+
 function formatDate(value) {
   if (!value) return "—";
   const date = new Date(value);
@@ -321,6 +326,7 @@ return {
   couponSourceLabel,
   toDateInput,
   formatDay,
+  formatVipExpiry,
   formatDate,
   enabledText,
   vipName,

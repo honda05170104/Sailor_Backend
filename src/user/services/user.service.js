@@ -12,8 +12,6 @@ import { normalizeMobile } from '../../services/orderImport.js';
 import { defaultVip, syncUserVip, vipProgress, listVips } from '../../services/vip.js';
 import { applyTagIds } from '../../services/tags.js';
 import { applyAnimalIds, animalPopulate, listAnimalCatalog } from '../../manager/services/animal.service.js';
-import { presentUserMouseOrder, setUserMouseOrder } from '../../services/mouseOrders.js';
-import { getTimes } from '../../manager/services/config.service.js';
 import { listUserCoupons, countAvailableCoupons } from '../../manager/services/coupon.service.js';
 import { issuePendingPromotions } from '../../manager/services/promotion.service.js';
 
@@ -30,13 +28,16 @@ async function presentUser(user) {
     nextVip: progress.nextVip,
     /** Amount still needed (yearSpend) to reach nextVip. */
     spendToNext: progress.spendToNext,
-    /** Current membership end date. */
+    /** Current membership end date. Null when vipExpiresForever is true. */
     vipExpiresAt: progress.vipExpiresAt,
+    /** True when an admin set the membership to never expire. */
+    vipExpiresForever: progress.vipExpiresForever,
     vipProgress: {
       yearSpend: progress.yearSpend,
       nextVip: progress.nextVip,
       spendToNext: progress.spendToNext,
       vipExpiresAt: progress.vipExpiresAt,
+      vipExpiresForever: progress.vipExpiresForever,
       goldProtectExpiresAt: progress.goldProtectExpiresAt,
     },
   };
@@ -281,14 +282,6 @@ export async function updateAnimals(user, { animalIds } = {}) {
   return {
     user: await presentUser(user),
   };
-}
-
-export async function getMice(user) {
-  return presentUserMouseOrder(await getTimes(), user);
-}
-
-export async function updateMice(user, payload = {}) {
-  return setUserMouseOrder(await getTimes(), user, payload);
 }
 
 export async function getTransactions(user) {

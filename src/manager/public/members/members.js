@@ -10,7 +10,7 @@
     vipName,
     lineStatusHtml,
     formatDate,
-    formatDay,
+    formatVipExpiry,
   } = M;
 
   const importForm = document.getElementById("import-form");
@@ -42,7 +42,7 @@
         <td>${escapeHtml(user.displayName || "—")}</td>
         <td>${escapeHtml(user.birthday || "—")}</td>
         <td>${escapeHtml(vipName(user))}</td>
-        <td>${escapeHtml(formatDay(user.vipExpiresAt) || "—")}</td>
+        <td>${escapeHtml(formatVipExpiry(user))}</td>
         <td>${lineStatusHtml(user)}</td>
         <td>${escapeHtml(formatDate(user.lastUsedAt))}</td>
       </tr>`;

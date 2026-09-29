@@ -9,7 +9,6 @@ import * as tagController from "../controllers/tag.controller.js";
 import * as couponController from "../controllers/coupon.controller.js";
 import * as animalController from "../controllers/animal.controller.js";
 import * as configController from "../controllers/config.controller.js";
-import * as mouseController from "../controllers/mouse.controller.js";
 import * as bannerController from "../controllers/banner.controller.js";
 import * as promotionController from "../controllers/promotion.controller.js";
 
@@ -67,8 +66,6 @@ router.post("/animals/:id/delete", managerAuth, animalController.remove);
 
 router.get("/config", managerAuth, configController.get);
 router.post("/config", managerAuth, configController.update);
-
-router.get("/mice/week", managerAuth, mouseController.getWeek);
 
 router.get("/banners", managerAuth, bannerController.list);
 router.post(

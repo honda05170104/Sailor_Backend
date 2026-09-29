@@ -13,6 +13,7 @@ import managerRoutes from "./manager/routes/index.js";
 import { ensureBootstrapManager } from "./manager/services/manager.service.js";
 import { ensureGlobalConfig } from "./manager/services/config.service.js";
 import { listStores } from "./data/stores.js";
+import { listVips } from "./data/vips.js";
 import { listBanners } from "./manager/services/banner.service.js";
 import { listPromotions } from "./manager/services/promotion.service.js";
 import { startAgenda, stopAgenda } from "./jobs/agenda.js";
@@ -85,8 +86,6 @@ app.get(
   sendAsset("products/products.js", "application/javascript"),
 );
 app.get("/assets/products.css", sendAsset("products/products.css", "text/css"));
-app.get("/assets/mice.js", sendAsset("mice/mice.js", "application/javascript"));
-app.get("/assets/mice.css", sendAsset("mice/mice.css", "text/css"));
 app.get(
   "/assets/settings.js",
   sendAsset("settings/settings.js", "application/javascript"),
@@ -104,7 +103,6 @@ app.get(["/coupons", "/coupons/"], sendManagerPage("coupons/index.html"));
 app.get(["/vips", "/vips/"], sendManagerPage("vips/index.html"));
 app.get(["/tags", "/tags/"], sendManagerPage("tags/index.html"));
 app.get(["/products", "/products/"], sendManagerPage("products/index.html"));
-app.get(["/mice", "/mice/"], sendManagerPage("mice/index.html"));
 app.get(["/settings", "/settings/"], sendManagerPage("settings/index.html"));
 app.get(["/branches", "/branches/"], sendManagerPage("branches/index.html"));
 app.get(["/banners", "/banners/"], sendManagerPage("banners/index.html"));
@@ -125,6 +123,10 @@ app.get("/members/:id", (req, res, next) => {
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/manager", managerRoutes);
+app.get(
+  "/api/v1/vips",
+  asyncHandler(async (_req, res) => success(res, { vips: listVips() })),
+);
 app.get(
   "/api/v1/stores",
   asyncHandler(async (_req, res) => success(res, { stores: listStores() })),

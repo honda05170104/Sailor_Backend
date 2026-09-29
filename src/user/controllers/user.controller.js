@@ -62,16 +62,6 @@ export const updateAnimals = asyncHandler(async (req, res) => {
   return success(res, data);
 });
 
-export const getMice = asyncHandler(async (req, res) => {
-  const data = await userService.getMice(req.user);
-  return success(res, data);
-});
-
-export const updateMice = asyncHandler(async (req, res) => {
-  const data = await userService.updateMice(req.user, req.body || {});
-  return success(res, data);
-});
-
 export const syncLineAvatar = asyncHandler(async (req, res) => {
   const data = await userService.syncLineAvatar(req.user, req.body || {});
   return success(res, data);

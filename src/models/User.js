@@ -55,6 +55,16 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    /** Admin set the expiry; daily VIP sync will not overwrite it. */
+    vipExpiresManual: {
+      type: Boolean,
+      default: false,
+    },
+    /** Manual expiry with no end date. */
+    vipExpiresForever: {
+      type: Boolean,
+      default: false,
+    },
     tags: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
       default: [],
@@ -103,7 +113,8 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     totalSpend: this.totalSpend || 0,
     prepaidFeed: this.prepaidFeed || 0,
     storedCredit: this.storedCredit || 0,
-    vipExpiresAt: this.vipExpiresAt || null,
+    vipExpiresAt: this.vipExpiresForever ? null : this.vipExpiresAt || null,
+    vipExpiresForever: Boolean(this.vipExpiresForever),
     tags: Array.isArray(this.tags)
       ? this.tags.map((tag) =>
           tag && typeof tag.toSafeJSON === 'function' ? tag.toSafeJSON() : tag

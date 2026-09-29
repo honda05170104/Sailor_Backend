@@ -67,6 +67,10 @@
                   <strong id="member-vip">—</strong>
                 </div>
                 <div>
+                  <span>會員效期</span>
+                  <strong id="member-vip-expires">—</strong>
+                </div>
+                <div>
                   <span>累積消費</span>
                   <strong id="member-spend">—</strong>
                 </div>
@@ -192,6 +196,35 @@
         <select id="edit-vip" name="vipId" required>
           <option value="">請選擇等級</option>
         </select>
+        <label id="edit-vip-expires-label">會員效期</label>
+        <div class="expiry-field">
+          <div class="expiry-tabs" role="tablist" aria-labelledby="edit-vip-expires-label">
+            <button
+              class="expiry-tab is-active"
+              id="expiry-tab-date"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              data-expiry="date"
+            >
+              指定日期
+            </button>
+            <button
+              class="expiry-tab"
+              id="expiry-tab-forever"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              data-expiry="forever"
+            >
+              永遠
+            </button>
+          </div>
+          <input type="hidden" id="edit-vip-expires-mode" value="date" />
+          <div id="edit-vip-expires-date-wrap">
+            <input id="edit-vip-expires" name="vipExpiresAt" type="date" aria-label="會員效期" />
+          </div>
+        </div>
         <label for="edit-birthday">生日</label>
         <input id="edit-birthday" name="birthday" type="date" />
         <p class="error" id="member-edit-error"></p>

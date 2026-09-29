@@ -52,13 +52,21 @@ export function vipSpendSinceDate(date = new Date()) {
   return new Date(date.getTime() - VIP_SPEND_WINDOW_MS);
 }
 
-async function sumSpend(userId, { since = null, until = null } = {}) {
+async function sumSpend(userId, { since = null, until = null, includePositiveAdjustments = false } = {}) {
   if (!userId) return 0;
   const userOid = new mongoose.Types.ObjectId(String(userId));
   const match = {
     user: userOid,
-    source: { $nin: NON_SPEND_TRANSACTION_SOURCES },
   };
+  // Manual point adds count as lifetime spend. Deductions, cashback, and redemptions do not.
+  if (includePositiveAdjustments) {
+    match.$or = [
+      { source: { $nin: NON_SPEND_TRANSACTION_SOURCES } },
+      { source: '後台調整', totalAmount: { $gt: 0 } },
+    ];
+  } else {
+    match.source = { $nin: NON_SPEND_TRANSACTION_SOURCES };
+  }
   if (since || until) {
     match.createdAt = {};
     if (since) match.createdAt.$gte = since;
@@ -77,9 +85,9 @@ async function sumSpend(userId, { since = null, until = null } = {}) {
   return Math.max(0, Number(rows[0]?.total) || 0);
 }
 
-/** Lifetime paid order totals (excludes points / adjustments). */
+/** Lifetime spend, including backend manual point increases. */
 export async function getLifetimeSpend(userId, { until = null } = {}) {
-  return sumSpend(userId, { until });
+  return sumSpend(userId, { until, includePositiveAdjustments: true });
 }
 
 /** Sum paid order totals for a user within the rolling VIP window. */
@@ -103,7 +111,12 @@ export async function vipProgress(user) {
   const spend = await getYearSpend(user?._id || user?.id);
   const vips = VIPS;
   const goldProtectExpiresAt = getGoldProtectExpiresAt(user);
-  const vipExpiresAt = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
+  const vipExpiresForever = Boolean(user?.vipExpiresForever);
+  const vipExpiresAt = vipExpiresForever
+    ? null
+    : user?.vipExpiresAt
+      ? new Date(user.vipExpiresAt)
+      : null;
 
   if (!vips.length) {
     return {
@@ -111,6 +124,7 @@ export async function vipProgress(user) {
       spendToNext: 0,
       yearSpend: spend,
       vipExpiresAt,
+      vipExpiresForever,
       goldProtectExpiresAt,
     };
   }
@@ -132,6 +146,7 @@ export async function vipProgress(user) {
       spendToNext: 0,
       yearSpend: spend,
       vipExpiresAt,
+      vipExpiresForever,
       goldProtectExpiresAt,
     };
   }
@@ -141,6 +156,7 @@ export async function vipProgress(user) {
     spendToNext: Math.max(0, Number(next.minSpend) - spend),
     yearSpend: spend,
     vipExpiresAt,
+    vipExpiresForever,
     goldProtectExpiresAt,
   };
 }
@@ -242,16 +258,19 @@ export async function syncUserVip(user) {
 
   const finalVip = getVipById(user.vip) || toVipJSON(earned);
   const finalRank = finalVip?.rank || 0;
-  const vipExpiresAt = resolveVipExpiresAt(user, {
-    now: new Date(),
-    finalRank,
-    finalMinSpend: finalVip?.minSpend || 0,
-    yearSpend,
-    upgraded,
-    protectedFromDowngrade,
-  });
-  user.vipExpiresAt = vipExpiresAt;
-  update.vipExpiresAt = vipExpiresAt;
+  let vipExpiresAt = user.vipExpiresForever ? null : user.vipExpiresAt || null;
+  if (!user.vipExpiresManual && !user.vipExpiresForever) {
+    vipExpiresAt = resolveVipExpiresAt(user, {
+      now: new Date(),
+      finalRank,
+      finalMinSpend: finalVip?.minSpend || 0,
+      yearSpend,
+      upgraded,
+      protectedFromDowngrade,
+    });
+    user.vipExpiresAt = vipExpiresAt;
+    update.vipExpiresAt = vipExpiresAt;
+  }
 
   await User.updateOne({ _id: user._id }, update);
 
@@ -314,7 +333,9 @@ export async function runDailyVipSync() {
     failed: 0,
   };
 
-  const users = await User.find({}).select('_id vip totalSpend createdAt');
+  const users = await User.find({}).select(
+    '_id vip totalSpend createdAt vipExpiresAt vipExpiresManual vipExpiresForever'
+  );
   result.scanned = users.length;
 
   for (const user of users) {
