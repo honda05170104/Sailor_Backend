@@ -227,7 +227,7 @@ export function createCouponFlexMessage(coupon, brandName = '水手') {
             "action": {
               "type": "uri",
               "label": "查看我的優惠券",
-              "uri": "http://52.198.213.143:5173/coupons"
+              "uri": "https://sailor.taihow.xyz/coupons"
             }
           }
         ],
