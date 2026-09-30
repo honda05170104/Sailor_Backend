@@ -460,16 +460,6 @@
   margin: 0;
 }
 
-.tag-list .animal-group {
-  margin-bottom: 8px;
-}
-
-.tag-list .animal-group-name {
-  margin: 0 0 8px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
 @media (max-width: 800px) {
   .profile {
     flex-direction: column;

@@ -31,10 +31,10 @@ export const VIPS = [
       "用品類 85 折（活體、餌料除外）",
       "同物種一次買兩隻享 9 折",
       "單筆消費滿 300 元，點數回饋 1 點",
+      "每月 10 號，點數 2 倍送",
       "保健品買一送一卷 *1",
       "生日禮 100 元優惠券",
       "寄宿動物一天折 50 元",
-      "原購買金額折抵 8 折，用於購換購其他物種",
       "史麥動物醫院掛號免服務費 https://petsmilehospital.com/",
     ],
   },
@@ -54,10 +54,10 @@ export const VIPS = [
       "同物種一次買兩隻享 8 折",
       "生日禮 300 元優惠券",
       "單筆消費滿 200 元，點數回饋 1 點",
-      "全品項第二件 5 折 *2",
+      "每月 10、20 號，點數 2 倍送",
       "寄宿動物免費",
-      "原購買金額全折抵，用於購換購其他物種",
-      "史麥動物醫院掛號免服務費 https://petsmilehospital.com/",
+      "原購買金額折抵 8 折，用於購換購其他物種",
+      "史麥動物醫院免掛號費 + 每年一次健檢 https://petsmilehospital.com/",
       "黑卡專屬社群：搶先解鎖稀有物種預購權與專屬特惠，與資深玩家深度交流",
       "不定期提供品牌活動",
     ],
@@ -140,6 +140,13 @@ export function toVipJSON(vip) {
 
 export function defaultVip() {
   return requireVip(VIPS[0].id);
+}
+
+/** 一般會員 has no end date. */
+export function isBaseVip(vip) {
+  if (!vip) return true;
+  if (vip.slug === "normal") return true;
+  return (vip.rank ?? 1) <= 1;
 }
 
 /** Points earned from a single purchase by VIP cashback rule. */

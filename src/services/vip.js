@@ -9,6 +9,7 @@ import {
   requireVip,
   toVipJSON,
   defaultVip,
+  isBaseVip,
   isGoldDowngradeProtected,
   getGoldProtectExpiresAt,
   calcCashbackPoints,
@@ -28,6 +29,7 @@ export {
   requireVip,
   toVipJSON,
   defaultVip,
+  isBaseVip,
   isGoldDowngradeProtected,
   getGoldProtectExpiresAt,
   calcCashbackPoints,
@@ -111,7 +113,8 @@ export async function vipProgress(user) {
   const spend = await getYearSpend(user?._id || user?.id);
   const vips = VIPS;
   const goldProtectExpiresAt = getGoldProtectExpiresAt(user);
-  const vipExpiresForever = Boolean(user?.vipExpiresForever);
+  const vipExpiresForever =
+    isBaseVip(getVipById(user?.vip)) || Boolean(user?.vipExpiresForever);
   const vipExpiresAt = vipExpiresForever
     ? null
     : user?.vipExpiresAt
@@ -259,7 +262,15 @@ export async function syncUserVip(user) {
   const finalVip = getVipById(user.vip) || toVipJSON(earned);
   const finalRank = finalVip?.rank || 0;
   let vipExpiresAt = user.vipExpiresForever ? null : user.vipExpiresAt || null;
-  if (!user.vipExpiresManual && !user.vipExpiresForever) {
+  if (isBaseVip(finalVip)) {
+    vipExpiresAt = null;
+    user.vipExpiresAt = null;
+    user.vipExpiresForever = false;
+    user.vipExpiresManual = false;
+    update.vipExpiresAt = null;
+    update.vipExpiresForever = false;
+    update.vipExpiresManual = false;
+  } else if (!user.vipExpiresManual && !user.vipExpiresForever) {
     vipExpiresAt = resolveVipExpiresAt(user, {
       now: new Date(),
       finalRank,

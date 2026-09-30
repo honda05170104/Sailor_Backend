@@ -4,11 +4,10 @@ import AppError from "../../utils/AppError.js";
 import { ErrorCode } from "../../constants/codes.js";
 import mongoose from "mongoose";
 import { applyTagIds } from "../../services/tags.js";
-import { applyAnimalIds, animalPopulate } from "./animal.service.js";
 import { normalizeMobile } from "../../services/orderImport.js";
 import { listUserCoupons } from "./coupon.service.js";
 import { requireStore, defaultStore } from "../../data/stores.js";
-import { requireVip } from "../../data/vips.js";
+import { requireVip, isBaseVip, getVipById } from "../../data/vips.js";
 import { getLifetimeSpend } from "../../services/vip.js";
 import { zonedInstant, zonedParts } from "../../services/globalConfig.js";
 import {
@@ -17,7 +16,7 @@ import {
 } from "../../services/transactions.js";
 
 function populateUser(query) {
-  return query.populate("tags").populate(animalPopulate());
+  return query.populate("tags");
 }
 
 function escapeRegex(value) {
@@ -303,7 +302,11 @@ export async function updateMember(id, payload = {}, manager) {
     user.vip = vip._id;
   }
 
-  if (payload.vipExpiresForever === true) {
+  if (isBaseVip(getVipById(user.vip))) {
+    user.vipExpiresForever = false;
+    user.vipExpiresManual = false;
+    user.vipExpiresAt = null;
+  } else if (payload.vipExpiresForever === true) {
     user.vipExpiresForever = true;
     user.vipExpiresManual = true;
     user.vipExpiresAt = null;
@@ -319,10 +322,7 @@ export async function updateMember(id, payload = {}, manager) {
   if (payload.tagIds !== undefined) {
     await applyTagIds(user, payload.tagIds);
   }
-  if (payload.animalIds !== undefined) {
-    await applyAnimalIds(user, payload.animalIds);
-  }
-  if (payload.tagIds === undefined && payload.animalIds === undefined) {
+  if (payload.tagIds === undefined) {
     await user.save();
   }
 
@@ -345,7 +345,7 @@ export async function updateMember(id, payload = {}, manager) {
     }
   }
 
-  await user.populate(["tags", animalPopulate()]);
+  await user.populate("tags");
 
   return {
     user: user.toSafeJSON(),

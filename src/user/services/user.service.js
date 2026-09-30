@@ -11,13 +11,11 @@ import {
 import { normalizeMobile } from '../../services/orderImport.js';
 import { defaultVip, syncUserVip, vipProgress, listVips } from '../../services/vip.js';
 import { applyTagIds } from '../../services/tags.js';
-import { applyAnimalIds, animalPopulate, listAnimalCatalog } from '../../manager/services/animal.service.js';
 import { listUserCoupons, countAvailableCoupons } from '../../manager/services/coupon.service.js';
 import { issuePendingPromotions } from '../../manager/services/promotion.service.js';
 
 async function presentUser(user) {
   if (!user.populated('tags')) await user.populate('tags');
-  if (!user.populated('animals')) await user.populate(animalPopulate());
   const progress = await vipProgress(user);
   return {
     ...user.toSafeJSON(),
@@ -259,26 +257,6 @@ export async function getCoupons(user) {
 
 export async function updateTags(user, { tagIds } = {}) {
   await applyTagIds(user, tagIds);
-  return {
-    user: await presentUser(user),
-  };
-}
-
-export async function getAnimals(user) {
-  const data = await listAnimalCatalog({ enabledOnly: true });
-  const animals = data.categories.flatMap((category) => category.animals || []);
-  const animalIds = (user?.animals || []).map((item) =>
-    String(item.id || item._id || item)
-  );
-  return {
-    categories: data.categories,
-    animals,
-    animalIds,
-  };
-}
-
-export async function updateAnimals(user, { animalIds } = {}) {
-  await applyAnimalIds(user, animalIds, { requireEnabled: true, field: 'animalIds' });
   return {
     user: await presentUser(user),
   };

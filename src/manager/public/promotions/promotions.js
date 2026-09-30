@@ -39,23 +39,33 @@ function fillCouponOptions(selectedId) {
 }
 
 function renderPromotions(promotions) {
-  const rows = document.getElementById("promotion-rows");
+  const list = document.getElementById("promotion-list");
 
   if (!promotions.length) {
-    rows.innerHTML = '<tr><td colspan="5" class="empty">尚無優惠活動</td></tr>';
+    list.innerHTML = '<p class="empty">尚無優惠活動</p>';
     return;
   }
 
-  rows.innerHTML = promotions
+  list.innerHTML = promotions
     .map((promo) => {
-      const coupon = promo.coupon || cachedCoupons.find((c) => String(c.id) === String(promo.couponId));
-      return `<tr class="clickable" data-id="${escapeHtml(promo.id)}">
-          <td>${escapeHtml(typeLabels[promo.type] || promo.type)}</td>
-          <td>${escapeHtml(promo.name)}</td>
-          <td>${escapeHtml(coupon ? couponOptionLabel(coupon) : "未綁定")}</td>
-          <td>${promo.enabled === false ? "停用" : "啟用"}</td>
-          <td>${escapeHtml(promo.description || "—")}</td>
-        </tr>`;
+      const coupon =
+        promo.coupon ||
+        cachedCoupons.find((item) => String(item.id) === String(promo.couponId));
+      const enabled = promo.enabled !== false;
+      const value = coupon
+        ? `${couponTypeLabel(coupon.type)} ${couponValueText(coupon)}`
+        : "未綁定優惠券";
+      return `<article class="promo-card${enabled ? "" : " is-off"}" data-id="${escapeHtml(promo.id)}" tabindex="0">
+          <div class="promo-card-top">
+            <span class="promo-type">${escapeHtml(typeLabels[promo.type] || promo.type)}</span>
+            <span class="promo-status${enabled ? " is-on" : ""}">${enabled ? "啟用" : "停用"}</span>
+          </div>
+          <h3>${escapeHtml(promo.name)}</h3>
+          <p class="promo-value">${escapeHtml(value)}</p>
+          <p class="promo-coupon">${escapeHtml(coupon?.name || "尚未綁定優惠券")}</p>
+          <p class="promo-expire">${escapeHtml(coupon ? couponExpiryText(coupon) : "—")}</p>
+          <p class="promo-desc">${escapeHtml(promo.description || "尚無說明")}</p>
+        </article>`;
     })
     .join("");
 }
@@ -112,10 +122,19 @@ promotionForm.addEventListener("submit", async (event) => {
   }
 });
 
-document.getElementById("promotion-rows").addEventListener("click", (event) => {
-  const row = event.target.closest("tr[data-id]");
-  if (!row?.dataset.id) return;
-  const promo = cachedPromotions.find((item) => String(item.id) === String(row.dataset.id));
+document.getElementById("promotion-list").addEventListener("click", (event) => {
+  const card = event.target.closest(".promo-card[data-id]");
+  if (!card?.dataset.id) return;
+  const promo = cachedPromotions.find((item) => String(item.id) === String(card.dataset.id));
+  if (promo) openPromotionModal(promo);
+});
+
+document.getElementById("promotion-list").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const card = event.target.closest(".promo-card[data-id]");
+  if (!card?.dataset.id) return;
+  event.preventDefault();
+  const promo = cachedPromotions.find((item) => String(item.id) === String(card.dataset.id));
   if (promo) openPromotionModal(promo);
 });
 

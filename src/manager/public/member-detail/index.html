@@ -151,16 +151,6 @@
           </form>
         </div>
 
-        <div class="panel hidden">
-          <div class="section-head">
-            <h3>偏好物種</h3>
-            <button id="member-animal-open-btn" type="button" onclick="document.getElementById('member-animal-modal').classList.remove('hidden')">編輯</button>
-          </div>
-          <div class="chips" id="member-products">
-            <span class="muted">尚未選擇</span>
-          </div>
-        </div>
-
         <div class="panel">
           <h3 style="margin: 0 0 12px; font-size: 16px">交易紀錄</h3>
           <table>
@@ -283,20 +273,6 @@
         <div class="modal-actions">
           <button class="ghost" id="member-credit-cancel-btn" type="button">取消</button>
           <button type="submit" id="credit-submit-btn">增加</button>
-        </div>
-      </form>
-    </div>
-
-    <div id="member-animal-modal" class="modal-backdrop hidden">
-      <form class="modal" id="member-animal-form">
-        <h3>編輯偏好物種</h3>
-        <div class="tag-list" id="member-product-options">
-          <p class="muted">尚無物種，請先到物種頁新增。</p>
-        </div>
-        <p class="error" id="member-animal-error"></p>
-        <div class="modal-actions">
-          <button class="ghost" id="member-animal-cancel-btn" type="button" onclick="document.getElementById('member-animal-modal').classList.add('hidden')">取消</button>
-          <button type="submit">儲存</button>
         </div>
       </form>
     </div>

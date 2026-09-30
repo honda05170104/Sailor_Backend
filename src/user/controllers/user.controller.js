@@ -52,16 +52,6 @@ export const updateTags = asyncHandler(async (req, res) => {
   return success(res, data);
 });
 
-export const getAnimals = asyncHandler(async (req, res) => {
-  const data = await userService.getAnimals(req.user);
-  return success(res, data);
-});
-
-export const updateAnimals = asyncHandler(async (req, res) => {
-  const data = await userService.updateAnimals(req.user, req.body || {});
-  return success(res, data);
-});
-
 export const syncLineAvatar = asyncHandler(async (req, res) => {
   const data = await userService.syncLineAvatar(req.user, req.body || {});
   return success(res, data);

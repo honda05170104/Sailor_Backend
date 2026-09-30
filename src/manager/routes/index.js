@@ -7,7 +7,6 @@ import * as transactionController from "../controllers/transaction.controller.js
 import * as vipController from "../controllers/vip.controller.js";
 import * as tagController from "../controllers/tag.controller.js";
 import * as couponController from "../controllers/coupon.controller.js";
-import * as animalController from "../controllers/animal.controller.js";
 import * as configController from "../controllers/config.controller.js";
 import * as bannerController from "../controllers/banner.controller.js";
 import * as promotionController from "../controllers/promotion.controller.js";
@@ -44,25 +43,6 @@ router.post("/tags/:id", managerAuth, tagController.update);
 router.get("/coupons", managerAuth, couponController.list);
 router.post("/coupons", managerAuth, couponController.create);
 router.post("/coupons/:id", managerAuth, couponController.update);
-router.get("/animals", managerAuth, animalController.list);
-router.post(
-  "/animal-categories",
-  managerAuth,
-  animalController.createCategory,
-);
-router.post(
-  "/animal-categories/:id",
-  managerAuth,
-  animalController.updateCategory,
-);
-router.post(
-  "/animal-categories/:id/delete",
-  managerAuth,
-  animalController.removeCategory,
-);
-router.post("/animals", managerAuth, animalController.create);
-router.post("/animals/:id", managerAuth, animalController.update);
-router.post("/animals/:id/delete", managerAuth, animalController.remove);
 
 router.get("/config", managerAuth, configController.get);
 router.post("/config", managerAuth, configController.update);

@@ -211,7 +211,10 @@ function formatDay(value) {
 }
 
 function formatVipExpiry(user) {
-  if (user?.vipExpiresForever) return "永遠";
+  const vip = user?.vip;
+  const baseTier =
+    vip?.slug === "normal" || vip?.rank === 1 || vip?.name === "一般會員";
+  if (baseTier || user?.vipExpiresForever) return "永遠";
   return formatDay(user?.vipExpiresAt);
 }
 

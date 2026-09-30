@@ -30,9 +30,6 @@ const memberCreditModal = document.getElementById("member-credit-modal");
 const memberCreditError = document.getElementById("member-credit-error");
 const memberAccountForm = document.getElementById("member-account-form");
 const memberAccountError = document.getElementById("member-account-error");
-const memberAnimalForm = document.getElementById("member-animal-form");
-const memberAnimalModal = document.getElementById("member-animal-modal");
-const memberAnimalError = document.getElementById("member-animal-error");
 const memberTagCreate = document.getElementById("member-tag-create");
 const memberTagCreateError = document.getElementById("member-tag-create-error");
 let currentMember = null;
@@ -54,58 +51,6 @@ function selectedMemberTagIds() {
   return [...memberAccountForm.querySelectorAll('input[name="tagIds"]:checked')].map(
     (input) => input.value
   );
-}
-
-function selectedMemberAnimalIds() {
-  return [...memberAnimalForm.querySelectorAll('input[name="animalIds"]:checked')].map(
-    (input) => input.value
-  );
-}
-
-function renderMemberAnimalOptions(animalData, selected) {
-  const options = document.getElementById("member-product-options");
-  const selectedSet = new Set((selected || []).map(String));
-  const enabled = (animalData?.animals || []).filter((item) => item.enabled !== false);
-  const groups = new Map();
-
-  for (const category of animalData?.categories || []) {
-    if (category.enabled === false) continue;
-    groups.set(String(category.id), { name: category.name, animals: [] });
-  }
-
-  const leftovers = [];
-  for (const animal of enabled) {
-    const key = String(animal.categoryId || animal.category?.id || "");
-    if (groups.has(key)) groups.get(key).animals.push(animal);
-    else leftovers.push(animal);
-  }
-
-  const list = [...groups.values()].filter((group) => group.animals.length);
-  if (leftovers.length) list.push({ name: "未分類", animals: leftovers });
-
-  if (!list.length) {
-    options.innerHTML = '<p class="muted">尚無物種，請先到物種頁新增。</p>';
-    return;
-  }
-
-  options.innerHTML = list
-    .map((group) => {
-      const rows = group.animals
-        .map(
-          (item) => `<label>
-            <input type="checkbox" name="animalIds" value="${escapeHtml(item.id)}" ${
-              selectedSet.has(String(item.id)) ? "checked" : ""
-            } />
-            ${escapeHtml(item.name)}
-          </label>`
-        )
-        .join("");
-      return `<div class="animal-group">
-        <p class="animal-group-name">${escapeHtml(group.name)}</p>
-        ${rows}
-      </div>`;
-    })
-    .join("");
 }
 
 function renderMemberTagOptions(tags, selected) {
@@ -138,11 +83,31 @@ function fillVipSelect(vips, selectedId) {
     vips
       .map(
         (vip) =>
-          `<option value="${escapeHtml(vip.id)}" ${
+          `<option value="${escapeHtml(vip.id)}" data-rank="${escapeHtml(
+            vip.rank ?? ""
+          )}" data-slug="${escapeHtml(vip.slug || "")}" ${
             String(vip.id) === current ? "selected" : ""
           }>${escapeHtml(vip.name)}</option>`
       )
       .join("");
+}
+
+function selectedVipIsBase() {
+  const option = memberEditForm.vipId.selectedOptions[0];
+  if (!option?.value) return false;
+  return (
+    option.dataset.slug === "normal" ||
+    Number(option.dataset.rank) === 1 ||
+    option.textContent.trim() === "一般會員"
+  );
+}
+
+function syncVipExpiryEditor() {
+  const base = selectedVipIsBase();
+  document.querySelectorAll(".expiry-tab").forEach((tab) => {
+    tab.disabled = base;
+  });
+  if (base) setVipExpiryMode("forever");
 }
 
 async function fetchTags() {
@@ -153,11 +118,6 @@ async function fetchTags() {
 async function fetchVips() {
   const data = await api("/vips");
   return data.vips || [];
-}
-
-async function fetchAnimals() {
-  const data = await api("/animals");
-  return data;
 }
 
 async function fetchCoupons() {
@@ -199,13 +159,14 @@ async function openMemberEditModal() {
   memberEditForm.birthday.value = user.birthday || "";
   const vips = await fetchVips();
   fillVipSelect(vips, user.vip?.id || user.vip);
-  if (user.vipExpiresForever) {
+  if (selectedVipIsBase() || user.vipExpiresForever) {
     setVipExpiryMode("forever");
     memberEditForm.vipExpiresAt.value = "";
   } else {
     setVipExpiryMode("date");
     memberEditForm.vipExpiresAt.value = toDateInput(user.vipExpiresAt);
   }
+  syncVipExpiryEditor();
   memberEditModal.classList.remove("hidden");
 }
 
@@ -272,21 +233,6 @@ function closeMemberCreditModal() {
   memberCreditModal.classList.add("hidden");
 }
 
-async function openMemberAnimalModal() {
-  memberAnimalError.textContent = "";
-  const user = currentMember || {};
-  const animalData = await fetchAnimals();
-  renderMemberAnimalOptions(
-    animalData,
-    (user.animals || []).map((animal) => animal.id)
-  );
-  memberAnimalModal.classList.remove("hidden");
-}
-
-function closeMemberAnimalModal() {
-  memberAnimalModal.classList.add("hidden");
-}
-
 function renderMemberCoupons(coupons) {
   const rows = document.getElementById("member-coupon-rows");
   document.getElementById("member-coupon-error").textContent = "";
@@ -335,14 +281,6 @@ function renderMemberDetail(user, transactions, coupons) {
   document.getElementById("member-vip").textContent = vipName(user);
   document.getElementById("member-vip-expires").textContent = formatVipExpiry(user);
   document.getElementById("member-spend").textContent = user.totalSpend ?? 0;
-
-  const productBox = document.getElementById("member-products");
-  const animals = user.animals || [];
-  productBox.innerHTML = animals.length
-    ? animals
-        .map((animal) => `<span class="chip">${escapeHtml(animal.name)}</span>`)
-        .join("")
-    : '<span class="muted">尚未選擇</span>';
 
   renderMemberCoupons(coupons || []);
 
@@ -523,7 +461,6 @@ document.getElementById("member-coupon-issue-btn").addEventListener("click", asy
 bindModalDismiss(memberEditModal, closeMemberEditModal);
 bindModalDismiss(memberFeedModal, closeMemberFeedModal);
 bindModalDismiss(memberCreditModal, closeMemberCreditModal);
-bindModalDismiss(memberAnimalModal, closeMemberAnimalModal);
 
 document.getElementById("member-tag-options").addEventListener("change", (event) => {
   const input = event.target.closest('input[name="tagIds"]');
@@ -593,8 +530,13 @@ document.querySelectorAll(".credit-tab").forEach((tab) => {
 
 document.querySelectorAll(".expiry-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
+    if (selectedVipIsBase()) return;
     setVipExpiryMode(tab.dataset.expiry);
   });
+});
+
+memberEditForm.vipId.addEventListener("change", () => {
+  syncVipExpiryEditor();
 });
 
 memberCreditForm.addEventListener("submit", async (event) => {
@@ -650,43 +592,6 @@ memberAccountForm.addEventListener("submit", async (event) => {
     await loadMemberDetail(currentMember.id);
   } catch (error) {
     memberAccountError.textContent = error.message;
-  }
-});
-
-document.getElementById("member-animal-open-btn").addEventListener("click", async () => {
-  try {
-    await openMemberAnimalModal();
-  } catch (error) {
-    memberAnimalError.textContent = error.message;
-    memberAnimalModal.classList.remove("hidden");
-  }
-});
-
-document.getElementById("member-animal-cancel-btn").addEventListener("click", () => {
-  closeMemberAnimalModal();
-});
-
-memberAnimalForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  memberAnimalError.textContent = "";
-
-  if (!currentMember?.id) {
-    memberAnimalError.textContent = "找不到會員";
-    return;
-  }
-
-  try {
-    await api(`/users/${currentMember.id}`, {
-      method: "POST",
-      toast: "偏好物種已更新",
-      body: JSON.stringify({
-        animalIds: selectedMemberAnimalIds(),
-      }),
-    });
-    closeMemberAnimalModal();
-    await loadMemberDetail(currentMember.id);
-  } catch (error) {
-    memberAnimalError.textContent = error.message;
   }
 });
 

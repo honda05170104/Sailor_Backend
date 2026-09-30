@@ -20,27 +20,29 @@ let editingCouponId = null;
 let cachedCoupons = [];
 
 function renderCoupons(coupons) {
-  const rows = document.getElementById("coupon-rows");
+  const list = document.getElementById("coupon-list");
 
   if (!coupons.length) {
-    rows.innerHTML = '<tr><td colspan="8" class="empty">尚無優惠券</td></tr>';
+    list.innerHTML = '<p class="empty">尚無優惠券</p>';
     return;
   }
 
-  rows.innerHTML = coupons
-    .map(
-      (coupon) =>
-        `<tr class="clickable" data-id="${escapeHtml(coupon.id)}">
-          <td>${escapeHtml(coupon.name)}</td>
-          <td>${escapeHtml(couponCategoryLabel(coupon.category))}</td>
-          <td>${escapeHtml(couponTypeLabel(coupon.type))}</td>
-          <td>${escapeHtml(couponValueText(coupon))}</td>
-          <td>${escapeHtml(coupon.minSpend ?? 0)}</td>
-          <td>${escapeHtml(couponExpiryText(coupon))}</td>
-          <td>${coupon.enabled === false ? "停用" : "啟用"}</td>
-          <td>${escapeHtml(coupon.description || "—")}</td>
-        </tr>`
-    )
+  list.innerHTML = coupons
+    .map((coupon) => {
+      const enabled = coupon.enabled !== false;
+      const minSpend = coupon.minSpend ?? 0;
+      return `<article class="coupon-card${enabled ? "" : " is-off"}" data-id="${escapeHtml(coupon.id)}" tabindex="0">
+          <div class="coupon-card-top">
+            <span class="coupon-category">${escapeHtml(couponCategoryLabel(coupon.category))}</span>
+            <span class="coupon-status${enabled ? " is-on" : ""}">${enabled ? "啟用" : "停用"}</span>
+          </div>
+          <h3>${escapeHtml(coupon.name)}</h3>
+          <p class="coupon-value">${escapeHtml(couponTypeLabel(coupon.type))} ${escapeHtml(couponValueText(coupon))}</p>
+          <p class="coupon-meta">低消 ${escapeHtml(minSpend)} 元</p>
+          <p class="coupon-expire">${escapeHtml(couponExpiryText(coupon))}</p>
+          <p class="coupon-desc">${escapeHtml(coupon.description || "—")}</p>
+        </article>`;
+    })
     .join("");
 }
 
@@ -171,10 +173,19 @@ document.getElementById("coupon-open-btn").addEventListener("click", () => {
   openCouponModal();
 });
 
-document.getElementById("coupon-rows").addEventListener("click", (event) => {
-  const row = event.target.closest("tr[data-id]");
-  if (!row?.dataset.id) return;
-  const coupon = cachedCoupons.find((item) => String(item.id) === String(row.dataset.id));
+document.getElementById("coupon-list").addEventListener("click", (event) => {
+  const card = event.target.closest(".coupon-card[data-id]");
+  if (!card?.dataset.id) return;
+  const coupon = cachedCoupons.find((item) => String(item.id) === String(card.dataset.id));
+  if (coupon) openCouponModal(coupon);
+});
+
+document.getElementById("coupon-list").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const card = event.target.closest(".coupon-card[data-id]");
+  if (!card?.dataset.id) return;
+  event.preventDefault();
+  const coupon = cachedCoupons.find((item) => String(item.id) === String(card.dataset.id));
   if (coupon) openCouponModal(coupon);
 });
 

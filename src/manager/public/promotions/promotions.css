@@ -1,11 +1,125 @@
-/* 優惠活動頁沿用共用版面 */
-body {
-  min-height: 100vh;
+.page-desc {
+  margin: -8px 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.page-desc {
-  margin: 0 0 1rem;
-  color: var(--muted, #666);
-  font-size: 0.95rem;
+.promotion-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+}
+
+.promotion-list > .empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 36px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  text-align: center;
+}
+
+.promo-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 210px;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  border-top: 4px solid var(--accent);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.promo-card:hover,
+.promo-card:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(31, 26, 22, 0.08);
+  outline: none;
+}
+
+.promo-card.is-off {
+  border-top-color: #c9bfb4;
+  background: #f7f3ee;
+}
+
+.promo-card.is-off .promo-value,
+.promo-card.is-off h3 {
+  color: var(--muted);
+}
+
+.promo-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.promo-type,
+.promo-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.promo-type {
+  background: #f3ece3;
+  color: #6f675f;
+}
+
+.promo-status {
+  flex-shrink: 0;
+  background: #f3eee8;
+  color: #6f675f;
+}
+
+.promo-status.is-on {
+  background: #e7f3ea;
+  color: #2d6a3e;
+}
+
+.promo-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.promo-value {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.promo-coupon,
+.promo-expire,
+.promo-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
   line-height: 1.5;
+}
+
+.promo-coupon {
+  color: var(--ink);
+}
+
+.promo-expire {
+  margin-top: 2px;
+}
+
+.promo-desc {
+  margin-top: auto;
+  padding-top: 12px;
 }

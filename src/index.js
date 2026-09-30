@@ -82,11 +82,6 @@ app.get(
 );
 app.get("/assets/members.css", sendAsset("members/members.css", "text/css"));
 app.get(
-  "/assets/products.js",
-  sendAsset("products/products.js", "application/javascript"),
-);
-app.get("/assets/products.css", sendAsset("products/products.css", "text/css"));
-app.get(
   "/assets/settings.js",
   sendAsset("settings/settings.js", "application/javascript"),
 );
@@ -102,7 +97,6 @@ app.get(["/members", "/members/"], sendManagerPage("members/index.html"));
 app.get(["/coupons", "/coupons/"], sendManagerPage("coupons/index.html"));
 app.get(["/vips", "/vips/"], sendManagerPage("vips/index.html"));
 app.get(["/tags", "/tags/"], sendManagerPage("tags/index.html"));
-app.get(["/products", "/products/"], sendManagerPage("products/index.html"));
 app.get(["/settings", "/settings/"], sendManagerPage("settings/index.html"));
 app.get(["/branches", "/branches/"], sendManagerPage("branches/index.html"));
 app.get(["/banners", "/banners/"], sendManagerPage("banners/index.html"));

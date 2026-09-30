@@ -65,39 +65,78 @@ button {
 
 .layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 248px 1fr;
   min-height: 100vh;
 }
 
 aside {
-  background: #2b2420;
-  color: #f7f1e8;
-  padding: 28px 20px;
+  background: linear-gradient(180deg, #322a25 0%, #241e1b 180px);
+  color: #f6f1ea;
+  padding: 22px 14px 16px;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
 }
 
 aside h1 {
-  margin: 0 0 28px;
-  font-size: 18px;
-  letter-spacing: 0.08em;
+  margin: 4px 8px 14px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid rgba(255, 247, 237, 0.08);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+}
+
+aside h1::before {
+  content: "";
+  display: block;
+  width: 22px;
+  height: 3px;
+  margin-bottom: 12px;
+  border-radius: 99px;
+  background: #c56b4e;
 }
 
 aside a,
 aside button.link {
   display: block;
-  color: inherit;
+  color: #efe6dc;
   text-decoration: none;
-  padding: 10px 12px;
-  border-radius: 8px;
-  margin-bottom: 6px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  margin: 0 0 2px;
   background: transparent;
   width: auto;
   text-align: left;
+  font-size: 14px;
+  line-height: 1.4;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+aside a:hover,
+aside button.link:hover {
+  background: rgba(255, 247, 237, 0.08);
+  color: #fffaf4;
+}
+
+aside a.active {
+  background: #f4efe6;
+  color: #2a221c;
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #c56b4e;
+}
+
+aside a.active:hover {
+  background: #faf6f0;
+  color: #2a221c;
 }
 
 aside .nav-group {
-  margin: 8px 0 10px;
+  margin: 6px 0 2px;
 }
 
 aside .nav-group-title {
@@ -105,35 +144,44 @@ aside .nav-group-title {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin: 0 0 4px;
-  padding: 8px 12px;
+  margin: 0;
+  padding: 9px 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
-  color: #b8aea3;
+  color: #c9beb3;
   font: inherit;
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   cursor: pointer;
   text-align: left;
 }
 
 aside .nav-group-title:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f7f1e8;
+  background: rgba(255, 247, 237, 0.08);
+  color: #f6f1ea;
+}
+
+aside .nav-group:has(a.active) > .nav-group-title {
+  color: #f6f1ea;
 }
 
 aside .nav-group-title::after {
   content: "";
-  width: 6px;
-  height: 6px;
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: rotate(45deg);
-  transition: transform 0.15s ease;
+  opacity: 0.85;
+  transition: transform 0.15s ease, margin-top 0.15s ease;
 }
 
 aside .nav-group.is-collapsed .nav-group-title::after {
+  margin-top: 0;
   transform: rotate(-45deg);
 }
 
@@ -150,22 +198,52 @@ aside .nav-group.is-collapsed .nav-group-items {
 aside .nav-group-items-inner {
   overflow: hidden;
   min-height: 0;
+  margin: 2px 4px 6px 16px;
+  padding: 2px 0 2px 8px;
+  border-left: 1px solid rgba(255, 247, 237, 0.12);
 }
 
 aside .nav-group a {
-  padding-left: 20px;
+  margin-left: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #ddd3c8;
+  border-radius: 8px;
 }
 
-aside a.active,
-aside a:hover,
-aside button.link:hover {
-  background: rgba(255, 255, 255, 0.1);
+aside .nav-group a.active {
+  color: #2a221c;
+}
+
+aside #logout-btn {
+  margin-top: auto;
+  color: #c9beb3;
+}
+
+aside #logout-btn::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin: 8px 4px 10px;
+  background: rgba(255, 247, 237, 0.1);
+}
+
+aside a:focus-visible,
+aside button:focus-visible {
+  outline: 2px solid #e7c2b4;
+  outline-offset: 2px;
 }
 
 .who {
-  margin-top: auto;
-  font-size: 13px;
+  margin-top: 8px;
+  font-size: 12px;
   color: #d8cfc4;
+}
+
+.who:not(:empty) {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 247, 237, 0.06);
 }
 
 main {
@@ -386,6 +464,16 @@ th {
 @media (max-width: 800px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  aside {
+    position: static;
+    height: auto;
+    overflow: visible;
+  }
+
+  aside #logout-btn {
+    margin-top: 12px;
   }
 
   .toolbar {

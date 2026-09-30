@@ -40,9 +40,9 @@
         <td>${avatar}</td>
         <td>${escapeHtml(user.mobile || "—")}</td>
         <td>${escapeHtml(user.displayName || "—")}</td>
-        <td>${escapeHtml(user.birthday || "—")}</td>
         <td>${escapeHtml(vipName(user))}</td>
         <td>${escapeHtml(formatVipExpiry(user))}</td>
+        <td>${escapeHtml(user.totalSpend ?? 0)}</td>
         <td>${lineStatusHtml(user)}</td>
         <td>${escapeHtml(formatDate(user.lastUsedAt))}</td>
       </tr>`;

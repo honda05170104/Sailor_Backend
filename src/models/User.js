@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-import { getVipById } from '../data/vips.js';
+import { getVipById, isBaseVip } from '../data/vips.js';
 
 const REQUIRED_PROFILE_FIELDS = ['birthday', 'mobile'];
 
@@ -69,10 +69,6 @@ const userSchema = new mongoose.Schema(
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
       default: [],
     },
-    animals: {
-      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Animal' }],
-      default: [],
-    },
     lastUsedAt: {
       type: Date,
       default: null,
@@ -101,6 +97,8 @@ userSchema.methods.getProfileCompleteness = function getProfileCompleteness() {
 };
 
 userSchema.methods.toSafeJSON = function toSafeJSON() {
+  const vip = getVipById(this.vip);
+  const vipExpiresForever = isBaseVip(vip) || Boolean(this.vipExpiresForever);
   return {
     id: this._id,
     lineUserId: this.lineUserId || '',
@@ -109,22 +107,15 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     birthday: this.birthday,
     mobile: this.mobile,
     avatarUrl: this.avatarUrl,
-    vip: getVipById(this.vip),
+    vip,
     totalSpend: this.totalSpend || 0,
     prepaidFeed: this.prepaidFeed || 0,
     storedCredit: this.storedCredit || 0,
-    vipExpiresAt: this.vipExpiresForever ? null : this.vipExpiresAt || null,
-    vipExpiresForever: Boolean(this.vipExpiresForever),
+    vipExpiresAt: vipExpiresForever ? null : this.vipExpiresAt || null,
+    vipExpiresForever,
     tags: Array.isArray(this.tags)
       ? this.tags.map((tag) =>
           tag && typeof tag.toSafeJSON === 'function' ? tag.toSafeJSON() : tag
-        )
-      : [],
-    animals: Array.isArray(this.animals)
-      ? this.animals.map((animal) =>
-          animal && typeof animal.toSafeJSON === 'function'
-            ? animal.toSafeJSON()
-            : animal
         )
       : [],
     profileCompleteness: this.getProfileCompleteness(),

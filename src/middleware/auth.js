@@ -3,7 +3,6 @@ import Token from '../models/Token.js';
 import AppError from '../utils/AppError.js';
 import { ErrorCode } from '../constants/codes.js';
 import asyncHandler from './asyncHandler.js';
-import { animalPopulate } from '../manager/services/animal.service.js';
 
 const AUTH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -39,9 +38,7 @@ const auth = asyncHandler(async (req, _res, next) => {
     throw new AppError('Unauthorized', ErrorCode.UNAUTHORIZED);
   }
 
-  const user = await User.findById(tokenDoc.user)
-    .populate('tags')
-    .populate(animalPopulate());
+  const user = await User.findById(tokenDoc.user).populate('tags');
   if (!user) {
     await tokenDoc.deleteOne();
     throw new AppError('Unauthorized', ErrorCode.UNAUTHORIZED);
