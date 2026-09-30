@@ -227,7 +227,7 @@ export function createCouponFlexMessage(coupon, brandName = '水手') {
             "action": {
               "type": "uri",
               "label": "查看我的優惠券",
-              "uri": "https://sailor.taihow.xyz/coupons"
+              "uri": "https://liff.line.me/2011362315-tc7Scs3h/coupons"
             }
           }
         ],
