@@ -7,8 +7,10 @@
     escapeHtml,
     requireAuth,
     bindModalDismiss,
+    showToast,
     vipName,
     lineStatusHtml,
+    isLineLinked,
     formatDate,
     formatVipExpiry,
   } = M;
@@ -17,14 +19,17 @@
   const importModal = document.getElementById("import-modal");
   const importError = document.getElementById("import-error");
   const importResult = document.getElementById("import-result");
+  let cachedUsers = [];
 
   function renderMembers(users) {
     const rows = document.getElementById("member-rows");
+    cachedUsers = users;
 
     if (!users.length) {
       rows.innerHTML = `<tr><td colspan="8" class="empty">${
         document.getElementById("member-search").value.trim() ||
-        document.getElementById("member-line-filter").value
+        document.getElementById("member-line-filter").value ||
+        document.getElementById("member-vip-filter").value
           ? "找不到符合的會員"
           : "尚無會員資料"
       }</td></tr>`;
@@ -53,9 +58,11 @@
   async function loadMembers() {
     const q = document.getElementById("member-search").value.trim();
     const line = document.getElementById("member-line-filter").value;
+    const vip = document.getElementById("member-vip-filter").value;
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (line) params.set("line", line);
+    if (vip) params.set("vip", vip);
     const query = params.toString();
     const data = await api(`/users${query ? `?${query}` : ""}`);
     renderMembers(data.users || []);
@@ -73,6 +80,20 @@
             `<option value="${escapeHtml(branch.id)}">${escapeHtml(branch.name)}</option>`
         )
         .join("");
+  }
+
+  function fillVipOptions(vips) {
+    const select = document.getElementById("member-vip-filter");
+    const current = select.value;
+    select.innerHTML =
+      '<option value="">全部等級</option>' +
+      vips
+        .map(
+          (vip) =>
+            `<option value="${escapeHtml(vip.slug)}">${escapeHtml(vip.name)}</option>`
+        )
+        .join("");
+    if (current) select.value = current;
   }
 
   function openImportModal() {
@@ -106,6 +127,14 @@
 
   document.getElementById("member-line-filter").addEventListener("change", () => {
     loadMembers();
+  });
+
+  document.getElementById("member-vip-filter").addEventListener("change", () => {
+    loadMembers();
+  });
+
+  document.getElementById("message-open-btn").addEventListener("click", () => {
+    location.href = "/messages";
   });
 
   document.getElementById("member-search").addEventListener("keydown", (event) => {
@@ -175,6 +204,8 @@
     if (!manager) return;
 
     try {
+      const vipData = await api("/vips");
+      fillVipOptions(vipData.vips || []);
       await loadMembers();
     } catch {
       /* page data failed independently of auth */

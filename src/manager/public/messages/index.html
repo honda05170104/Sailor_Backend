@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>群發訊息｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <link rel="stylesheet" href="/assets/messages.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <div class="nav-group" data-nav-key="會員">
+          <button class="nav-group-title" type="button" aria-expanded="true">會員</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-members" href="/members">會員管理</a>
+          <a id="nav-messages" class="active" href="/messages">群發訊息</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-banners" href="/banners">Banner</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
+        <button class="link" id="logout-btn" type="button">登出</button>
+
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>群發訊息</h2>
+          <div class="toolbar">
+            <input id="message-search" type="search" placeholder="搜尋名字或電話" />
+            <select id="message-vip-filter">
+              <option value="">全部等級</option>
+            </select>
+            <select id="message-line-filter">
+              <option value="linked">已開通 LINE</option>
+              <option value="">全部 LINE</option>
+              <option value="unlinked">未開通 LINE</option>
+            </select>
+          </div>
+        </div>
+        <form class="panel" id="message-form">
+          <div class="message-type-selector">
+            <label><input type="radio" name="messageType" value="text" checked> 文字訊息</label>
+            <label><input type="radio" name="messageType" value="coupon"> 優惠券發送</label>
+          </div>
+          
+          <div id="text-message-section">
+            <label for="message-text">訊息內容</label>
+            <textarea id="message-text" name="text" maxlength="5000" placeholder="輸入要發給會員的 LINE 訊息"></textarea>
+          </div>
+          
+          <div id="coupon-message-section" style="display: none;">
+            <label for="coupon-select">選擇優惠券</label>
+            <select id="coupon-select" name="couponId">
+              <option value="">選擇要發送的優惠券</option>
+            </select>
+          </div>
+          
+          <div class="broadcast-actions">
+            <div class="broadcast-info">
+              <p class="hint" id="message-summary">載入中…</p>
+              <p class="hint" id="message-selected"></p>
+            </div>
+            <button id="message-send" type="submit">發送</button>
+          </div>
+        </form>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="select-all" /></th>
+                <th>手機</th>
+                <th>名稱</th>
+                <th>會員等級</th>
+                <th>LINE</th>
+              </tr>
+            </thead>
+            <tbody id="message-rows">
+              <tr>
+                <td colspan="5" class="empty">載入中…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script src="/assets/shared.js"></script>
+    <script src="/assets/messages.js"></script>
+  </body>
+</html>

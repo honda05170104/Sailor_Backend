@@ -7,7 +7,7 @@ import { applyTagIds } from "../../services/tags.js";
 import { normalizeMobile } from "../../services/orderImport.js";
 import { listUserCoupons } from "./coupon.service.js";
 import { requireStore, defaultStore } from "../../data/stores.js";
-import { requireVip, isBaseVip, getVipById } from "../../data/vips.js";
+import { requireVip, isBaseVip, getVipById, getVipBySlug } from "../../data/vips.js";
 import { getLifetimeSpend } from "../../services/vip.js";
 import { zonedInstant, zonedParts } from "../../services/globalConfig.js";
 import {
@@ -59,8 +59,29 @@ function lineStatusFilter(line) {
   return {};
 }
 
-function memberListFilter(q, line) {
-  const parts = [memberSearchFilter(q), lineStatusFilter(line)].filter(
+function vipStatusFilter(vip) {
+  const raw = String(vip || "").trim();
+  if (!raw) return {};
+
+  const found = getVipBySlug(raw) || getVipById(raw);
+  if (!found) {
+    throw new AppError(
+      { field: "vip", message: "會員等級不存在" },
+      ErrorCode.BAD_REQUEST,
+    );
+  }
+
+  if (isBaseVip(found)) {
+    return {
+      $or: [{ vip: found.id }, { vip: null }, { vip: { $exists: false } }],
+    };
+  }
+
+  return { vip: found.id };
+}
+
+export function buildMemberFilter(q, line, vip) {
+  const parts = [memberSearchFilter(q), lineStatusFilter(line), vipStatusFilter(vip)].filter(
     (part) => Object.keys(part).length,
   );
   if (!parts.length) return {};
@@ -68,9 +89,9 @@ function memberListFilter(q, line) {
   return { $and: parts };
 }
 
-export async function listMembers(q, line) {
+export async function listMembers(q, line, vip) {
   const users = await populateUser(
-    User.find(memberListFilter(q, line)).sort({ lastUsedAt: -1, createdAt: -1 }),
+    User.find(buildMemberFilter(q, line, vip)).sort({ lastUsedAt: -1, createdAt: -1 }),
   );
 
   return {

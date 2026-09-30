@@ -104,6 +104,12 @@ app.get(
   ["/promotions", "/promotions/"],
   sendManagerPage("promotions/index.html"),
 );
+app.get(["/messages", "/messages/"], sendManagerPage("messages/index.html"));
+app.get(
+  "/assets/messages.js",
+  sendAsset("messages/messages.js", "application/javascript"),
+);
+app.get("/assets/messages.css", sendAsset("messages/messages.css", "text/css"));
 app.get("/dashboad", (_req, res) => {
   res.redirect("/members");
 });

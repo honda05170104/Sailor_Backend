@@ -12,12 +12,19 @@
     <div class="layout">
       <aside>
         <h1>水手 會員管理系統</h1>
-        <a id="nav-members" class="active" href="/members">會員</a>
+        <div class="nav-group" data-nav-key="會員">
+          <button class="nav-group-title" type="button" aria-expanded="true">會員</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-members" class="active" href="/members">會員管理</a>
+          <a id="nav-messages" href="/messages">群發訊息</a>
+          </div></div>
+        </div>
         <div class="nav-group" data-nav-key="行銷">
           <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
           <div class="nav-group-items"><div class="nav-group-items-inner">
           <a id="nav-promotions" href="/promotions">優惠活動</a>
           <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-messages" href="/messages">群發訊息</a>
           <a id="nav-banners" href="/banners">Banner</a>
           </div></div>
         </div>
@@ -38,6 +45,9 @@
           <h2>會員</h2>
           <div class="toolbar">
             <input id="member-search" type="search" placeholder="搜尋名字或電話" />
+            <select id="member-vip-filter">
+              <option value="">全部等級</option>
+            </select>
             <select id="member-line-filter">
               <option value="">全部 LINE</option>
               <option value="linked">已開通</option>
@@ -45,6 +55,7 @@
             </select>
             <button id="member-search-btn" type="button" onclick="window.loadMembers && window.loadMembers()">搜尋</button>
             <button id="import-open-btn" type="button" onclick="document.getElementById('import-modal').classList.remove('hidden');window.openMemberImport && window.openMemberImport()">匯入</button>
+            <button id="message-open-btn" type="button">群發訊息</button>
           </div>
         </div>
         <div class="panel">

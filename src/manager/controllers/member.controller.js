@@ -3,7 +3,11 @@ import { success } from "../../utils/response.js";
 import * as memberService from "../services/member.service.js";
 
 export const list = asyncHandler(async (req, res) => {
-  const data = await memberService.listMembers(req.query.q, req.query.line);
+  const data = await memberService.listMembers(
+    req.query.q,
+    req.query.line,
+    req.query.vip,
+  );
   return success(res, data);
 });
 

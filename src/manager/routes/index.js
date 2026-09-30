@@ -10,6 +10,7 @@ import * as couponController from "../controllers/coupon.controller.js";
 import * as configController from "../controllers/config.controller.js";
 import * as bannerController from "../controllers/banner.controller.js";
 import * as promotionController from "../controllers/promotion.controller.js";
+import * as messageController from "../controllers/message.controller.js";
 
 const router = express.Router();
 
@@ -68,5 +69,8 @@ router.post(
 
 router.get("/promotions", managerAuth, promotionController.list);
 router.post("/promotions/:id", managerAuth, promotionController.update);
+
+router.post("/messages/broadcast", managerAuth, messageController.broadcast);
+router.post("/messages/broadcast-coupon", managerAuth, messageController.broadcastCoupon);
 
 export default router;

@@ -13,6 +13,7 @@ import {
   assertCouponIssuable,
   snapshotCoupon,
 } from '../../services/coupons.js';
+import { multicastCoupon } from '../../services/lineMessaging.js';
 
 async function expireStaleCoupons(userId) {
   await UserCoupon.updateMany(
@@ -131,6 +132,16 @@ export async function issueCoupon(userId, { couponId, expiresAt } = {}) {
     issuedAt,
     expiresAt: expiry,
   });
+
+  // 如果會員有綁 LINE，發送優惠券通知
+  if (user.lineUserId) {
+    try {
+      await multicastCoupon([user.lineUserId], coupon.toSafeJSON(), '您收到新的優惠券！');
+    } catch (error) {
+      console.warn('LINE coupon notification failed:', error.message);
+      // 不影響優惠券發放，只記錄錯誤
+    }
+  }
 
   return {
     coupon: issued.toSafeJSON(),
