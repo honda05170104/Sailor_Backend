@@ -225,9 +225,9 @@ export function createCouponFlexMessage(coupon, brandName = '水手') {
             "height": "sm",
             "color": "#000000",
             "action": {
-              "type": "message",
+              "type": "uri",
               "label": "查看我的優惠券",
-              "text": "我要查看優惠券"
+              "uri": "http://52.198.213.143:5173/coupons"
             }
           }
         ],
