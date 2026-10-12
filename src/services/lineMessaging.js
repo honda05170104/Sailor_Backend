@@ -15,6 +15,17 @@ function channelAccessToken() {
   return token;
 }
 
+function liffCouponUrl() {
+  const liffId = String(process.env.LINE_LIFF_ID || '').trim();
+  if (!liffId) {
+    throw new AppError(
+      'LINE LIFF is not configured',
+      ErrorCode.INTERNAL_SERVER_ERROR
+    );
+  }
+  return `https://liff.line.me/${liffId}/coupons`;
+}
+
 function chunks(items, size) {
   const groups = [];
   for (let index = 0; index < items.length; index += size) {
@@ -227,7 +238,7 @@ export function createCouponFlexMessage(coupon, brandName = '水手') {
             "action": {
               "type": "uri",
               "label": "查看我的優惠券",
-              "uri": "https://liff.line.me/2011362315-tc7Scs3h/coupons"
+              "uri": liffCouponUrl()
             }
           }
         ],
