@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 export const VIPS = [
   {
     id: "6a96b19f24ebb49b9046b616",
-    name: "一般會員",
+    name: "金卡",
     slug: "normal",
     rank: 1,
     minSpend: 0,
@@ -18,7 +18,7 @@ export const VIPS = [
   },
   {
     id: "6a96b19f24ebb49b9046b617",
-    name: "金卡",
+    name: "白金",
     slug: "gold",
     rank: 2,
     minSpend: 3500,
@@ -142,7 +142,7 @@ export function defaultVip() {
   return requireVip(VIPS[0].id);
 }
 
-/** 一般會員 has no end date. */
+/** 金卡（入會等級）沒有到期日。 */
 export function isBaseVip(vip) {
   if (!vip) return true;
   if (vip.slug === "normal") return true;

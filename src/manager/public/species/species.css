@@ -1,0 +1,143 @@
+.page-desc {
+  margin: -8px 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.species-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+}
+
+.species-board > .empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 36px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  text-align: center;
+  color: var(--muted);
+}
+
+.species-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+  border-top: 4px solid var(--accent);
+}
+
+.species-card.is-off {
+  border-top-color: #c9bfb4;
+  background: #f7f3ee;
+}
+
+.species-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.species-card-head h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.species-card.is-off .species-card-head h3 {
+  color: var(--muted);
+}
+
+.species-status {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f3eee8;
+  color: #6f675f;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.species-status.is-on {
+  background: #e7f3ea;
+  color: #2d6a3e;
+}
+
+.species-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.species-child,
+.species-empty {
+  margin: 0;
+}
+
+.species-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.species-child:hover,
+.species-child:focus-visible,
+.species-card-head:hover,
+.species-card-head:focus-visible {
+  border-color: #d9cfc3;
+  outline: none;
+}
+
+.species-card-head:hover,
+.species-card-head:focus-visible {
+  border-color: transparent;
+}
+
+.species-child.is-off {
+  color: var(--muted);
+  background: #f7f3ee;
+}
+
+.species-child-name {
+  min-width: 0;
+  font-size: 14px;
+}
+
+.species-empty {
+  padding: 10px 2px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.species-add-child {
+  margin-top: auto;
+  width: 100%;
+}

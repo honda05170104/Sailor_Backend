@@ -23,7 +23,7 @@ function publicUrlForKey(key) {
   return `https://${CLOUDFRONT_DOMAIN}/${key}`;
 }
 
-export async function uploadImageBuffer(buffer, { contentType, folder = 'banners' } = {}) {
+export async function uploadImageBuffer(buffer, { contentType, folder = 'images' } = {}) {
   if (!buffer?.length) {
     throw new AppError(
       { field: 'image', message: '請選擇圖片' },

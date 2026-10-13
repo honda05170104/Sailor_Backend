@@ -8,8 +8,8 @@ import * as vipController from "../controllers/vip.controller.js";
 import * as tagController from "../controllers/tag.controller.js";
 import * as couponController from "../controllers/coupon.controller.js";
 import * as configController from "../controllers/config.controller.js";
-import * as bannerController from "../controllers/banner.controller.js";
 import * as promotionController from "../controllers/promotion.controller.js";
+import * as speciesController from "../controllers/species.controller.js";
 import * as messageController from "../controllers/message.controller.js";
 
 const router = express.Router();
@@ -48,24 +48,10 @@ router.post("/coupons/:id", managerAuth, couponController.update);
 router.get("/config", managerAuth, configController.get);
 router.post("/config", managerAuth, configController.update);
 
-router.get("/banners", managerAuth, bannerController.list);
-router.post(
-  "/banners",
-  managerAuth,
-  bannerController.uploadBannerImage,
-  bannerController.create,
-);
-router.post(
-  "/banners/:id",
-  managerAuth,
-  bannerController.uploadBannerImage,
-  bannerController.update,
-);
-router.post(
-  "/banners/:id/delete",
-  managerAuth,
-  bannerController.remove,
-);
+router.get("/species", managerAuth, speciesController.list);
+router.post("/species", managerAuth, speciesController.create);
+router.post("/species/:id/delete", managerAuth, speciesController.remove);
+router.post("/species/:id", managerAuth, speciesController.update);
 
 router.get("/promotions", managerAuth, promotionController.list);
 router.post("/promotions/:id", managerAuth, promotionController.update);

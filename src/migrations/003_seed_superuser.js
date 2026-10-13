@@ -7,7 +7,7 @@ export default {
     if (exists) return;
 
     const username = (process.env.MANAGER_BOOTSTRAP_USERNAME || 'admin').toLowerCase();
-    const password = process.env.MANAGER_BOOTSTRAP_PASSWORD || 'admin123';
+    const password = process.env.MANAGER_BOOTSTRAP_PASSWORD || 'sailor1015';
 
     const manager = new Manager({
       username,

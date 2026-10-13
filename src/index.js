@@ -14,7 +14,6 @@ import { ensureBootstrapManager } from "./manager/services/manager.service.js";
 import { ensureGlobalConfig } from "./manager/services/config.service.js";
 import { listStores } from "./data/stores.js";
 import { listVips } from "./data/vips.js";
-import { listBanners } from "./manager/services/banner.service.js";
 import { listPromotions } from "./manager/services/promotion.service.js";
 import { startAgenda, stopAgenda } from "./jobs/agenda.js";
 import { success } from "./utils/response.js";
@@ -98,8 +97,8 @@ app.get(["/coupons", "/coupons/"], sendManagerPage("coupons/index.html"));
 app.get(["/vips", "/vips/"], sendManagerPage("vips/index.html"));
 app.get(["/tags", "/tags/"], sendManagerPage("tags/index.html"));
 app.get(["/settings", "/settings/"], sendManagerPage("settings/index.html"));
+app.get(["/species", "/species/"], sendManagerPage("species/index.html"));
 app.get(["/branches", "/branches/"], sendManagerPage("branches/index.html"));
-app.get(["/banners", "/banners/"], sendManagerPage("banners/index.html"));
 app.get(
   ["/promotions", "/promotions/"],
   sendManagerPage("promotions/index.html"),
@@ -130,13 +129,6 @@ app.get(
 app.get(
   "/api/v1/stores",
   asyncHandler(async (_req, res) => success(res, { stores: listStores() })),
-);
-app.get(
-  "/api/v1/banners",
-  asyncHandler(async (_req, res) => {
-    const data = await listBanners({ enabledOnly: true });
-    return success(res, data);
-  }),
 );
 app.get(
   "/api/v1/promotions",

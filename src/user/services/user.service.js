@@ -269,19 +269,24 @@ export async function getTransactions(user) {
 }
 
 export async function updateProfile(user, payload = {}) {
-  const allowed = ['birthday', 'mobile'];
+  const birthday = String(payload.birthday ?? '').trim();
+  const mobile = normalizeMobile(payload.mobile);
+  const errors = [];
 
-  for (const key of allowed) {
-    if (payload[key] !== undefined) {
-      user[key] = String(payload[key]).trim();
-    }
+  if (!birthday) {
+    errors.push({ field: 'birthday', message: 'birthday is required' });
+  }
+  if (!mobile || mobile.length < 9) {
+    errors.push({ field: 'mobile', message: 'mobile is required' });
+  }
+  if (errors.length) {
+    throw new AppError(errors, ErrorCode.BAD_REQUEST);
   }
 
-  if (payload.mobile !== undefined) {
-    user.mobile = normalizeMobile(user.mobile);
-    await claimImportedUserByMobile(user, user.mobile);
-    await syncUserVip(user);
-  }
+  user.birthday = birthday;
+  user.mobile = mobile;
+  await claimImportedUserByMobile(user, user.mobile);
+  await syncUserVip(user);
 
   await user.save();
   await safeIssuePromotions(user);
