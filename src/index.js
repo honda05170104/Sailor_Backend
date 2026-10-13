@@ -99,6 +99,10 @@ app.get(["/vips", "/vips/"], sendManagerPage("vips/index.html"));
 app.get(["/tags", "/tags/"], sendManagerPage("tags/index.html"));
 app.get(["/settings", "/settings/"], sendManagerPage("settings/index.html"));
 app.get(["/species", "/species/"], sendManagerPage("species/index.html"));
+app.get(
+  ["/species-reviews", "/species-reviews/"],
+  sendManagerPage("species-reviews/index.html"),
+);
 app.get(["/branches", "/branches/"], sendManagerPage("branches/index.html"));
 app.get(
   ["/promotions", "/promotions/"],

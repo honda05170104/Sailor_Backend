@@ -73,12 +73,6 @@ const userSchema = new mongoose.Schema(
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Species' }],
       default: [],
     },
-    /** Free text when the species is not in the catalog. */
-    otherSpecies: {
-      type: String,
-      trim: true,
-      default: '',
-    },
     /** True after the member submits the species form, even if they leave it blank. */
     speciesFormFilled: {
       type: Boolean,
@@ -147,7 +141,6 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
           return item;
         })
       : [],
-    otherSpecies: this.otherSpecies || '',
     speciesFormFilled: Boolean(this.speciesFormFilled),
     profileCompleteness: this.getProfileCompleteness(),
     lastUsedAt: this.lastUsedAt || null,

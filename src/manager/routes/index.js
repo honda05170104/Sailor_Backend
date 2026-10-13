@@ -50,6 +50,9 @@ router.post("/config", managerAuth, configController.update);
 
 router.get("/species", managerAuth, speciesController.list);
 router.post("/species", managerAuth, speciesController.create);
+router.get("/species/reviews", managerAuth, speciesController.listReviews);
+router.post("/species/reviews/:id/approve", managerAuth, speciesController.approveReview);
+router.post("/species/reviews/:id/reject", managerAuth, speciesController.rejectReview);
 router.post("/species/:id/delete", managerAuth, speciesController.remove);
 router.post("/species/:id", managerAuth, speciesController.update);
 

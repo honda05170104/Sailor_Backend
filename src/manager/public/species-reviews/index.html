@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>送審｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/shared/shared.css" />
+    <link rel="stylesheet" href="/species-reviews/species-reviews.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <div class="nav-group" data-nav-key="會員">
+          <button class="nav-group-title" type="button" aria-expanded="true">會員</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-members" href="/members">會員管理</a>
+          <a id="nav-messages" href="/messages">群發訊息</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/coupons">優惠券</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="物種">
+          <button class="nav-group-title" type="button" aria-expanded="true">物種</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-species" href="/species">物種</a>
+          <a id="nav-species-reviews" class="active" href="/species-reviews">送審</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/branches">分店</a>
+          <a id="nav-vips" href="/vips">VIP 規則</a>
+          <a id="nav-settings" href="/settings">系統設定</a>
+          </div></div>
+        </div>
+        <button class="link" id="logout-btn" type="button">登出</button>
+
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>送審</h2>
+        </div>
+        <p class="hint species-reviews-hint">會員在喜歡的物種填了「其他」之後，會出現在這裡。通過後會加進所選大類，並記到該會員的喜歡物種。</p>
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>物種名稱</th>
+                <th>會員</th>
+                <th>送出時間</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="review-rows">
+              <tr>
+                <td colspan="4" class="empty">目前沒有待審項目</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="review-modal" class="modal-backdrop hidden">
+      <form class="modal" id="review-form">
+        <h3>通過送審</h3>
+        <p class="hint" id="review-member"></p>
+        <label for="review-name">名稱</label>
+        <input id="review-name" name="name" required />
+        <label for="review-parent">大類</label>
+        <select id="review-parent" name="parentId" required></select>
+        <p class="error" id="review-error"></p>
+        <div class="modal-actions">
+          <button class="ghost" id="review-cancel-btn" type="button">取消</button>
+          <button type="submit">通過並加入物種</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="/shared/shared.js"></script>
+    <script src="/species-reviews/species-reviews.js"></script>
+  </body>
+</html>

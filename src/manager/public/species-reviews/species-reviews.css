@@ -1,0 +1,21 @@
+.species-reviews-hint {
+  margin: -12px 0 16px;
+}
+
+.review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.review-member {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.review-member:hover,
+.review-member:focus-visible {
+  text-decoration: underline;
+}

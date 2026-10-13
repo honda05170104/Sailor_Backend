@@ -1,5 +1,6 @@
 import User from "../../models/User.js";
 import Transaction from "../../models/Transaction.js";
+import SpeciesReview from "../../models/SpeciesReview.js";
 import AppError from "../../utils/AppError.js";
 import { ErrorCode } from "../../constants/codes.js";
 import mongoose from "mongoose";
@@ -114,11 +115,20 @@ export async function getMember(id) {
   const transactions = await Transaction.find({ user: user._id }).sort({
     createdAt: -1,
   });
+  const speciesReviews = await SpeciesReview.find({
+    user: user._id,
+    status: "pending",
+  }).sort({ createdAt: -1 });
 
   return {
     user: user.toSafeJSON(),
     transactions: transactions.map((doc) => doc.toSafeJSON()),
     coupons: await listUserCoupons(user._id),
+    speciesReviews: speciesReviews.map((review) => ({
+      id: review._id,
+      name: review.name,
+      createdAt: review.createdAt,
+    })),
   };
 }
 

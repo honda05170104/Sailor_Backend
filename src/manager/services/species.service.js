@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import Species from '../../models/Species.js';
+import SpeciesReview from '../../models/SpeciesReview.js';
+import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 
@@ -214,7 +216,9 @@ export async function listPublicSpecies() {
 
 const OTHER_NAME_MAX = 80;
 
-export async function setUserSpecies(user, { speciesIds, other } = {}) {
+export async function setUserSpecies(user, payload = {}) {
+  const { speciesIds } = payload;
+  const otherSpecies = String(payload.otherSpecies ?? payload.other ?? '').trim();
   const ids = [
     ...new Set(
       (Array.isArray(speciesIds) ? speciesIds : [])
@@ -251,17 +255,144 @@ export async function setUserSpecies(user, { speciesIds, other } = {}) {
     }
   }
 
-  const otherSpecies = String(other ?? '').trim();
   if (otherSpecies.length > OTHER_NAME_MAX) {
     throw new AppError(
-      { field: 'other', message: '其他最多 80 個字' },
+      { field: 'otherSpecies', message: '其他最多 80 個字' },
       ErrorCode.BAD_REQUEST
     );
   }
 
   user.interestedSpecies = selected.map((item) => item._id);
-  user.otherSpecies = otherSpecies;
   user.speciesFormFilled = true;
   await user.save();
+  await syncOtherSpeciesReview(user, otherSpecies);
   return user;
+}
+
+async function syncOtherSpeciesReview(user, otherSpecies) {
+  const name = String(otherSpecies || '').trim();
+  const now = new Date();
+
+  if (!name) {
+    await SpeciesReview.updateMany(
+      { user: user._id, status: 'pending' },
+      { $set: { status: 'cancelled', reviewedAt: now } }
+    );
+    return;
+  }
+
+  const existing = await SpeciesReview.findOne({
+    user: user._id,
+    name,
+    status: 'pending',
+  });
+
+  await SpeciesReview.updateMany(
+    {
+      user: user._id,
+      status: 'pending',
+      ...(existing ? { _id: { $ne: existing._id } } : {}),
+    },
+    { $set: { status: 'cancelled', reviewedAt: now } }
+  );
+
+  if (!existing) {
+    await SpeciesReview.create({
+      user: user._id,
+      name,
+      status: 'pending',
+    });
+  }
+}
+
+export async function listSpeciesReviews() {
+  const reviews = await SpeciesReview.find({ status: 'pending' })
+    .sort({ createdAt: -1 })
+    .populate('user', 'displayName mobile');
+
+  return {
+    reviews: reviews.map((review) => review.toSafeJSON()),
+  };
+}
+
+async function requirePendingReview(id) {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError('找不到這筆送審', ErrorCode.NOT_FOUND);
+  }
+
+  const review = await SpeciesReview.findById(id);
+  if (!review) {
+    throw new AppError('找不到這筆送審', ErrorCode.NOT_FOUND);
+  }
+  if (review.status !== 'pending') {
+    throw new AppError('這筆已經審過了', ErrorCode.BAD_REQUEST);
+  }
+  return review;
+}
+
+async function findOrCreateChild(parent, name) {
+  let species = await Species.findOne({ parent: parent._id, name });
+  if (!species) {
+    try {
+      species = await Species.create({
+        name,
+        parent: parent._id,
+        sortOrder: 0,
+        enabled: true,
+      });
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+      species = await Species.findOne({ parent: parent._id, name });
+      if (!species) throwIfDuplicateName(error);
+    }
+  }
+
+  if (species.enabled === false) {
+    species.enabled = true;
+    await species.save();
+  }
+
+  return species;
+}
+
+export async function approveSpeciesReview(id, { parentId, name } = {}) {
+  const review = await requirePendingReview(id);
+  const parent = await resolveParent(parentId);
+  if (!parent) {
+    throw new AppError(
+      { field: 'parentId', message: '請選擇大類' },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+
+  const speciesName = requireName(name ?? review.name);
+  const species = await findOrCreateChild(parent, speciesName);
+  const user = await User.findById(review.user);
+
+  if (user) {
+    const selected = new Set((user.interestedSpecies || []).map((item) => String(item)));
+    if (!selected.has(String(species._id))) {
+      user.interestedSpecies.push(species._id);
+    }
+    await user.save();
+  }
+
+  review.name = speciesName;
+  review.status = 'approved';
+  review.species = species._id;
+  review.parent = parent._id;
+  review.reviewedAt = new Date();
+  await review.save();
+  await review.populate('user', 'displayName mobile');
+
+  return { review: review.toSafeJSON() };
+}
+
+export async function rejectSpeciesReview(id) {
+  const review = await requirePendingReview(id);
+  review.status = 'rejected';
+  review.reviewedAt = new Date();
+  await review.save();
+  await review.populate('user', 'displayName mobile');
+  return { review: review.toSafeJSON() };
 }

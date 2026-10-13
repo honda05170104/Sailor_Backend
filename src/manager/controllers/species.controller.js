@@ -21,3 +21,18 @@ export const remove = asyncHandler(async (req, res) => {
   const data = await speciesService.removeSpecies(req.params.id);
   return success(res, data);
 });
+
+export const listReviews = asyncHandler(async (_req, res) => {
+  const data = await speciesService.listSpeciesReviews();
+  return success(res, data);
+});
+
+export const approveReview = asyncHandler(async (req, res) => {
+  const data = await speciesService.approveSpeciesReview(req.params.id, req.body || {});
+  return success(res, data);
+});
+
+export const rejectReview = asyncHandler(async (req, res) => {
+  const data = await speciesService.rejectSpeciesReview(req.params.id);
+  return success(res, data);
+});

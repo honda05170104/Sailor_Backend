@@ -271,7 +271,43 @@ function renderMemberCoupons(coupons) {
     .join("");
 }
 
-function renderMemberDetail(user, transactions, coupons) {
+function renderMemberSpecies(user, reviews) {
+  const box = document.getElementById("member-species");
+  const selected = Array.isArray(user.interestedSpecies) ? user.interestedSpecies : [];
+  const pending = Array.isArray(reviews) ? reviews : [];
+  const groups = new Map();
+
+  for (const item of selected) {
+    const parent = item?.parentName || "未分類";
+    const list = groups.get(parent) || [];
+    if (item?.name) list.push(item.name);
+    groups.set(parent, list);
+  }
+
+  const catalog = [...groups.entries()]
+    .filter(([, names]) => names.length)
+    .map(
+      ([parent, names]) =>
+        `<div class="member-species-group"><span>${escapeHtml(parent)}</span><strong>${names
+          .map((name) => escapeHtml(name))
+          .join("、")}</strong></div>`
+    )
+    .join("");
+  const pendingHtml = pending.length
+    ? `<div class="member-species-group"><span>送審中</span><strong>${pending
+        .map((review) => escapeHtml(review.name))
+        .join("、")}</strong></div>`
+    : "";
+
+  if (!catalog && !pendingHtml) {
+    box.innerHTML = `<p class="muted">${user.speciesFormFilled ? "沒有選擇" : "尚未填寫"}</p>`;
+    return;
+  }
+
+  box.innerHTML = `<div class="member-species">${catalog}${pendingHtml}</div>`;
+}
+
+function renderMemberDetail(user, transactions, coupons, speciesReviews) {
   currentMember = user;
   document.getElementById("member-name").textContent = user.displayName || "會員詳情";
   document.getElementById("member-mobile").textContent = user.mobile || "—";
@@ -283,6 +319,7 @@ function renderMemberDetail(user, transactions, coupons) {
   document.getElementById("member-spend").textContent = user.totalSpend ?? 0;
 
   renderMemberCoupons(coupons || []);
+  renderMemberSpecies(user, speciesReviews);
 
   const avatarEl = document.getElementById("member-avatar");
   if (user.avatarUrl) {
@@ -333,7 +370,12 @@ function renderMemberDetail(user, transactions, coupons) {
 async function loadMemberDetail(id) {
   try {
     const data = await api(`/users/${id}`);
-    renderMemberDetail(data.user, data.transactions || [], data.coupons || []);
+    renderMemberDetail(
+      data.user,
+      data.transactions || [],
+      data.coupons || [],
+      data.speciesReviews || []
+    );
     try {
       await fillAccountForm(data.user);
     } catch (error) {
