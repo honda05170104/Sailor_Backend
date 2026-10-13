@@ -15,6 +15,7 @@ import { ensureGlobalConfig } from "./manager/services/config.service.js";
 import { listStores } from "./data/stores.js";
 import { listVips } from "./data/vips.js";
 import { listPromotions } from "./manager/services/promotion.service.js";
+import { listPublicSpecies } from "./manager/services/species.service.js";
 import { startAgenda, stopAgenda } from "./jobs/agenda.js";
 import { success } from "./utils/response.js";
 import asyncHandler from "./middleware/asyncHandler.js";
@@ -134,6 +135,13 @@ app.get(
   "/api/v1/promotions",
   asyncHandler(async (_req, res) => {
     const data = await listPromotions({ enabledOnly: true });
+    return success(res, data);
+  }),
+);
+app.get(
+  "/api/v1/species",
+  asyncHandler(async (_req, res) => {
+    const data = await listPublicSpecies();
     return success(res, data);
   }),
 );

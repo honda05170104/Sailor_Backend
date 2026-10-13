@@ -52,6 +52,11 @@ export const updateTags = asyncHandler(async (req, res) => {
   return success(res, data);
 });
 
+export const updateSpecies = asyncHandler(async (req, res) => {
+  const data = await userService.updateSpecies(req.user, req.body || {});
+  return success(res, data);
+});
+
 export const syncLineAvatar = asyncHandler(async (req, res) => {
   const data = await userService.syncLineAvatar(req.user, req.body || {});
   return success(res, data);

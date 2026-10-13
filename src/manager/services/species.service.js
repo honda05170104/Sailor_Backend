@@ -192,3 +192,76 @@ export async function removeSpecies(id) {
   await species.deleteOne();
   return { id: species._id };
 }
+
+export async function listPublicSpecies() {
+  const { species } = await listSpecies();
+  const enabled = species.filter((item) => item.enabled !== false);
+  const roots = enabled.filter((item) => !item.parentId);
+
+  return {
+    groups: roots.map((root) => ({
+      id: root.id,
+      name: root.name,
+      options: enabled
+        .filter((item) => String(item.parentId) === String(root.id))
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+        })),
+    })),
+  };
+}
+
+const OTHER_NAME_MAX = 80;
+
+export async function setUserSpecies(user, { speciesIds, other } = {}) {
+  const ids = [
+    ...new Set(
+      (Array.isArray(speciesIds) ? speciesIds : [])
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    ),
+  ];
+
+  for (const id of ids) {
+    if (!mongoose.isValidObjectId(id)) {
+      throw new AppError(
+        { field: 'speciesIds', message: '物種 id 不正確' },
+        ErrorCode.BAD_REQUEST
+      );
+    }
+  }
+
+  const selected = ids.length
+    ? await Species.find({ _id: { $in: ids } }).populate('parent')
+    : [];
+  if (selected.length !== ids.length) {
+    throw new AppError(
+      { field: 'speciesIds', message: '找不到這個物種' },
+      ErrorCode.NOT_FOUND
+    );
+  }
+
+  for (const item of selected) {
+    if (!item.parent || item.enabled === false || item.parent.enabled === false) {
+      throw new AppError(
+        { field: 'speciesIds', message: '只能選擇已啟用的小類' },
+        ErrorCode.BAD_REQUEST
+      );
+    }
+  }
+
+  const otherSpecies = String(other ?? '').trim();
+  if (otherSpecies.length > OTHER_NAME_MAX) {
+    throw new AppError(
+      { field: 'other', message: '其他最多 80 個字' },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+
+  user.interestedSpecies = selected.map((item) => item._id);
+  user.otherSpecies = otherSpecies;
+  user.speciesFormFilled = true;
+  await user.save();
+  return user;
+}

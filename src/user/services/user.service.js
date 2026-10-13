@@ -13,9 +13,13 @@ import { defaultVip, syncUserVip, vipProgress, listVips } from '../../services/v
 import { applyTagIds } from '../../services/tags.js';
 import { listUserCoupons, countAvailableCoupons } from '../../manager/services/coupon.service.js';
 import { issuePendingPromotions } from '../../manager/services/promotion.service.js';
+import { setUserSpecies } from '../../manager/services/species.service.js';
 
 async function presentUser(user) {
-  if (!user.populated('tags')) await user.populate('tags');
+  await user.populate([
+    { path: 'tags' },
+    { path: 'interestedSpecies', populate: { path: 'parent' } },
+  ]);
   const progress = await vipProgress(user);
   return {
     ...user.toSafeJSON(),
@@ -257,6 +261,13 @@ export async function getCoupons(user) {
 
 export async function updateTags(user, { tagIds } = {}) {
   await applyTagIds(user, tagIds);
+  return {
+    user: await presentUser(user),
+  };
+}
+
+export async function updateSpecies(user, payload = {}) {
+  await setUserSpecies(user, payload);
   return {
     user: await presentUser(user),
   };

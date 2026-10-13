@@ -16,7 +16,9 @@ import {
 } from "../../services/transactions.js";
 
 function populateUser(query) {
-  return query.populate("tags");
+  return query
+    .populate("tags")
+    .populate({ path: "interestedSpecies", populate: { path: "parent" } });
 }
 
 function escapeRegex(value) {

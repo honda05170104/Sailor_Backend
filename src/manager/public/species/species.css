@@ -1,10 +1,3 @@
-.page-desc {
-  margin: -8px 0 20px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
 .species-board {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));

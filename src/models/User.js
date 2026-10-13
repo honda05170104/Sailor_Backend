@@ -69,6 +69,21 @@ const userSchema = new mongoose.Schema(
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
       default: [],
     },
+    interestedSpecies: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Species' }],
+      default: [],
+    },
+    /** Free text when the species is not in the catalog. */
+    otherSpecies: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    /** True after the member submits the species form, even if they leave it blank. */
+    speciesFormFilled: {
+      type: Boolean,
+      default: false,
+    },
     lastUsedAt: {
       type: Date,
       default: null,
@@ -118,6 +133,22 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
           tag && typeof tag.toSafeJSON === 'function' ? tag.toSafeJSON() : tag
         )
       : [],
+    interestedSpecies: Array.isArray(this.interestedSpecies)
+      ? this.interestedSpecies.map((item) => {
+          if (item && typeof item.toSafeJSON === 'function') {
+            const species = item.toSafeJSON();
+            return {
+              id: species.id,
+              name: species.name,
+              parentId: species.parentId,
+              parentName: species.parentName,
+            };
+          }
+          return item;
+        })
+      : [],
+    otherSpecies: this.otherSpecies || '',
+    speciesFormFilled: Boolean(this.speciesFormFilled),
     profileCompleteness: this.getProfileCompleteness(),
     lastUsedAt: this.lastUsedAt || null,
     createdAt: this.createdAt,

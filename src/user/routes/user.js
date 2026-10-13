@@ -7,6 +7,7 @@ const router = express.Router();
 router.post('/dev', userController.dev);
 router.get('/', auth, userController.get);
 router.post('/profile', auth, userController.update);
+router.post('/species', auth, userController.updateSpecies);
 router.post('/avatar/line', auth, userController.syncLineAvatar);
 
 export default router;

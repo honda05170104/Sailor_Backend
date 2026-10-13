@@ -12,6 +12,7 @@ router.get('/getVip', auth, userController.getVips);
 router.get('/getCoupon', auth, userController.getCoupons);
 router.post('/updateUser', auth, userController.update);
 router.post('/updateTag', auth, userController.updateTags);
+router.post('/updateSpecies', auth, userController.updateSpecies);
 router.post('/logout', auth, userController.logout);
 
 export default router;
