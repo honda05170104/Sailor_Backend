@@ -6,7 +6,7 @@ function renameGoldLabel(value) {
 export default {
   name: '038_rename_gold_vip_labels',
   async up(db) {
-    for (const collectionName of ['promotions', 'coupons', 'usercoupons']) {
+    for (const collectionName of ['promotions', 'coupons', 'userCoupons', 'usercoupons']) {
       const collection = db.collection(collectionName);
       const docs = await collection
         .find({
