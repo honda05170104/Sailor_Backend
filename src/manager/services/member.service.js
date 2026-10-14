@@ -1,4 +1,4 @@
-import User from "../../models/User.js";
+import User, { GENDERS } from "../../models/User.js";
 import Transaction from "../../models/Transaction.js";
 import SpeciesReview from "../../models/SpeciesReview.js";
 import AppError from "../../utils/AppError.js";
@@ -278,6 +278,17 @@ export async function updateMember(id, payload = {}, manager) {
 
   if (payload.birthday !== undefined) {
     user.birthday = String(payload.birthday || "").trim();
+  }
+
+  if (payload.gender !== undefined) {
+    const gender = String(payload.gender || "").trim();
+    if (gender && !GENDERS.includes(gender)) {
+      throw new AppError(
+        { field: "gender", message: "gender is invalid" },
+        ErrorCode.BAD_REQUEST,
+      );
+    }
+    user.gender = gender;
   }
 
   if (payload.mobile !== undefined) {

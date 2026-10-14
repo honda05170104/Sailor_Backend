@@ -75,6 +75,10 @@
                   <strong id="member-birthday">—</strong>
                 </div>
                 <div>
+                  <span>生理性別</span>
+                  <strong id="member-gender">—</strong>
+                </div>
+                <div>
                   <span>會員等級</span>
                   <strong id="member-vip">—</strong>
                 </div>
@@ -236,6 +240,13 @@
         </div>
         <label for="edit-birthday">生日</label>
         <input id="edit-birthday" name="birthday" type="date" />
+        <label for="edit-gender">生理性別</label>
+        <select id="edit-gender" name="gender">
+          <option value="">未填寫</option>
+          <option value="male">男</option>
+          <option value="female">女</option>
+          <option value="undisclosed">不願透露</option>
+        </select>
         <p class="error" id="member-edit-error"></p>
         <div class="modal-actions">
           <button class="ghost" id="member-edit-cancel-btn" type="button" onclick="document.getElementById('member-edit-modal').classList.add('hidden')">取消</button>

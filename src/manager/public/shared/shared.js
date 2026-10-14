@@ -233,6 +233,16 @@ function vipName(user) {
   return user.vip?.name || user.vipTier || "—";
 }
 
+const GENDER_LABELS = {
+  male: "男",
+  female: "女",
+  undisclosed: "不願透露",
+};
+
+function genderLabel(gender) {
+  return GENDER_LABELS[gender] || "—";
+}
+
 function isLineLinked(user) {
   return Boolean(user.lineLinked || user.lineUserId);
 }

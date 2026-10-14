@@ -157,6 +157,7 @@ async function openMemberEditModal() {
   memberEditForm.displayName.value = user.displayName || "";
   memberEditForm.mobile.value = user.mobile || "";
   memberEditForm.birthday.value = user.birthday || "";
+  memberEditForm.gender.value = user.gender || "";
   const vips = await fetchVips();
   fillVipSelect(vips, user.vip?.id || user.vip);
   if (selectedVipIsBase() || user.vipExpiresForever) {
@@ -314,6 +315,7 @@ function renderMemberDetail(user, transactions, coupons, speciesReviews) {
   document.getElementById("member-line").innerHTML = lineStatusHtml(user);
   document.getElementById("member-last-used").textContent = formatDate(user.lastUsedAt);
   document.getElementById("member-birthday").textContent = user.birthday || "—";
+  document.getElementById("member-gender").textContent = genderLabel(user.gender);
   document.getElementById("member-vip").textContent = vipName(user);
   document.getElementById("member-vip-expires").textContent = formatVipExpiry(user);
   document.getElementById("member-spend").textContent = user.totalSpend ?? 0;
@@ -665,6 +667,7 @@ memberEditForm.addEventListener("submit", async (event) => {
       displayName: memberEditForm.displayName.value,
       mobile: memberEditForm.mobile.value,
       birthday: memberEditForm.birthday.value,
+      gender: memberEditForm.gender.value,
       vipId: memberEditForm.vipId.value,
     };
     if (expiryChanged && (vipExpiresForever || vipExpiresAt)) {

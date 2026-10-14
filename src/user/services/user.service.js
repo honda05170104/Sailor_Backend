@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import User from '../../models/User.js';
+import User, { GENDERS } from '../../models/User.js';
 import Token from '../../models/Token.js';
 import Transaction from '../../models/Transaction.js';
 import AppError from '../../utils/AppError.js';
@@ -282,6 +282,7 @@ export async function getTransactions(user) {
 export async function updateProfile(user, payload = {}) {
   const birthday = String(payload.birthday ?? '').trim();
   const mobile = normalizeMobile(payload.mobile);
+  const gender = String(payload.gender ?? '').trim();
   const errors = [];
 
   if (!birthday) {
@@ -290,12 +291,16 @@ export async function updateProfile(user, payload = {}) {
   if (!mobile || mobile.length < 9) {
     errors.push({ field: 'mobile', message: 'mobile is required' });
   }
+  if (!GENDERS.includes(gender)) {
+    errors.push({ field: 'gender', message: 'gender is required' });
+  }
   if (errors.length) {
     throw new AppError(errors, ErrorCode.BAD_REQUEST);
   }
 
   user.birthday = birthday;
   user.mobile = mobile;
+  user.gender = gender;
   await claimImportedUserByMobile(user, user.mobile);
   await syncUserVip(user);
 

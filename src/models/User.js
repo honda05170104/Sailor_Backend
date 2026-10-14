@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import { getVipById, isBaseVip } from '../data/vips.js';
 
 const REQUIRED_PROFILE_FIELDS = ['birthday', 'mobile'];
+/** 生理性別：男、女、不願透露。 */
+const GENDERS = ['male', 'female', 'undisclosed'];
 
 const userSchema = new mongoose.Schema(
   {
@@ -25,6 +27,11 @@ const userSchema = new mongoose.Schema(
     mobile: {
       type: String,
       trim: true,
+      default: '',
+    },
+    gender: {
+      type: String,
+      enum: ['', ...GENDERS],
       default: '',
     },
     avatarUrl: {
@@ -115,6 +122,7 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     displayName: this.displayName,
     birthday: this.birthday,
     mobile: this.mobile,
+    gender: this.gender || '',
     avatarUrl: this.avatarUrl,
     vip,
     totalSpend: this.totalSpend || 0,
@@ -149,5 +157,5 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
   };
 };
 
-export { REQUIRED_PROFILE_FIELDS };
+export { REQUIRED_PROFILE_FIELDS, GENDERS };
 export default mongoose.model('User', userSchema);
