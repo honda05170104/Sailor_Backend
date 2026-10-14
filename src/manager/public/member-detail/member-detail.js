@@ -98,7 +98,7 @@ function selectedVipIsBase() {
   return (
     option.dataset.slug === "normal" ||
     Number(option.dataset.rank) === 1 ||
-    option.textContent.trim() === "金卡"
+    option.textContent.trim() === "一般會員"
   );
 }
 
