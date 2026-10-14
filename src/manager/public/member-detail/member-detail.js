@@ -4,6 +4,7 @@ const {
   requireAuth,
   bindModalDismiss,
   vipName,
+  genderLabel,
   lineStatusHtml,
   couponTypeLabel,
   couponValueText,

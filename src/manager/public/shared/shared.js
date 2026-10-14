@@ -343,6 +343,7 @@ return {
   formatDate,
   enabledText,
   vipName,
+  genderLabel,
   isLineLinked,
   lineStatusHtml,
 };
