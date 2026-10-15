@@ -113,8 +113,7 @@ export async function vipProgress(user) {
   const spend = await getYearSpend(user?._id || user?.id);
   const vips = VIPS;
   const goldProtectExpiresAt = getGoldProtectExpiresAt(user);
-  const vipExpiresForever =
-    isBaseVip(getVipById(user?.vip)) || Boolean(user?.vipExpiresForever);
+  const vipExpiresForever = isBaseVip(getVipById(user?.vip));
   const vipExpiresAt = vipExpiresForever
     ? null
     : user?.vipExpiresAt
@@ -261,7 +260,7 @@ export async function syncUserVip(user) {
 
   const finalVip = getVipById(user.vip) || toVipJSON(earned);
   const finalRank = finalVip?.rank || 0;
-  let vipExpiresAt = user.vipExpiresForever ? null : user.vipExpiresAt || null;
+  let vipExpiresAt = user.vipExpiresAt || null;
   if (isBaseVip(finalVip)) {
     vipExpiresAt = null;
     user.vipExpiresAt = null;
@@ -270,17 +269,27 @@ export async function syncUserVip(user) {
     update.vipExpiresAt = null;
     update.vipExpiresForever = false;
     update.vipExpiresManual = false;
-  } else if (!user.vipExpiresManual && !user.vipExpiresForever) {
-    vipExpiresAt = resolveVipExpiresAt(user, {
-      now: new Date(),
-      finalRank,
-      finalMinSpend: finalVip?.minSpend || 0,
-      yearSpend,
-      upgraded,
-      protectedFromDowngrade,
-    });
-    user.vipExpiresAt = vipExpiresAt;
-    update.vipExpiresAt = vipExpiresAt;
+  } else {
+    if (user.vipExpiresForever) {
+      user.vipExpiresForever = false;
+      user.vipExpiresManual = false;
+      update.vipExpiresForever = false;
+      update.vipExpiresManual = false;
+    }
+    if (!user.vipExpiresManual || !user.vipExpiresAt) {
+      vipExpiresAt = resolveVipExpiresAt(user, {
+        now: new Date(),
+        finalRank,
+        finalMinSpend: finalVip?.minSpend || 0,
+        yearSpend,
+        upgraded,
+        protectedFromDowngrade,
+      });
+      user.vipExpiresAt = vipExpiresAt;
+      user.vipExpiresManual = false;
+      update.vipExpiresAt = vipExpiresAt;
+      update.vipExpiresManual = false;
+    }
   }
 
   await User.updateOne({ _id: user._id }, update);

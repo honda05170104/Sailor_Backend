@@ -67,7 +67,7 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    /** Manual expiry with no end date. */
+    /** Unused for paid tiers. 一般會員 is always open-ended. */
     vipExpiresForever: {
       type: Boolean,
       default: false,
@@ -114,7 +114,7 @@ userSchema.methods.getProfileCompleteness = function getProfileCompleteness() {
 
 userSchema.methods.toSafeJSON = function toSafeJSON() {
   const vip = getVipById(this.vip);
-  const vipExpiresForever = isBaseVip(vip) || Boolean(this.vipExpiresForever);
+  const vipExpiresForever = isBaseVip(vip);
   return {
     id: this._id,
     lineUserId: this.lineUserId || '',

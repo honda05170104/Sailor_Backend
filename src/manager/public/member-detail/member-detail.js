@@ -12,7 +12,6 @@ const {
   formatDay,
   formatVipExpiry,
   formatDate,
-  toDateInput,
   branchName,
   COUPON_STATUS_LABELS,
 } = window.Manager;
@@ -93,24 +92,6 @@ function fillVipSelect(vips, selectedId) {
       .join("");
 }
 
-function selectedVipIsBase() {
-  const option = memberEditForm.vipId.selectedOptions[0];
-  if (!option?.value) return false;
-  return (
-    option.dataset.slug === "normal" ||
-    Number(option.dataset.rank) === 1 ||
-    option.textContent.trim() === "一般會員"
-  );
-}
-
-function syncVipExpiryEditor() {
-  const base = selectedVipIsBase();
-  document.querySelectorAll(".expiry-tab").forEach((tab) => {
-    tab.disabled = base;
-  });
-  if (base) setVipExpiryMode("forever");
-}
-
 async function fetchTags() {
   const data = await api("/tags");
   return data.tags || [];
@@ -161,28 +142,7 @@ async function openMemberEditModal() {
   memberEditForm.gender.value = user.gender || "";
   const vips = await fetchVips();
   fillVipSelect(vips, user.vip?.id || user.vip);
-  if (selectedVipIsBase() || user.vipExpiresForever) {
-    setVipExpiryMode("forever");
-    memberEditForm.vipExpiresAt.value = "";
-  } else {
-    setVipExpiryMode("date");
-    memberEditForm.vipExpiresAt.value = toDateInput(user.vipExpiresAt);
-  }
-  syncVipExpiryEditor();
   memberEditModal.classList.remove("hidden");
-}
-
-function setVipExpiryMode(mode) {
-  const next = mode === "forever" ? "forever" : "date";
-  document.getElementById("edit-vip-expires-mode").value = next;
-  document.querySelectorAll(".expiry-tab").forEach((tab) => {
-    const active = tab.dataset.expiry === next;
-    tab.classList.toggle("is-active", active);
-    tab.setAttribute("aria-selected", active ? "true" : "false");
-  });
-  document
-    .getElementById("edit-vip-expires-date-wrap")
-    .classList.toggle("hidden", next === "forever");
 }
 
 function closeMemberEditModal() {
@@ -573,17 +533,6 @@ document.querySelectorAll(".credit-tab").forEach((tab) => {
   });
 });
 
-document.querySelectorAll(".expiry-tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    if (selectedVipIsBase()) return;
-    setVipExpiryMode(tab.dataset.expiry);
-  });
-});
-
-memberEditForm.vipId.addEventListener("change", () => {
-  syncVipExpiryEditor();
-});
-
 memberCreditForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   memberCreditError.textContent = "";
@@ -650,20 +599,6 @@ memberEditForm.addEventListener("submit", async (event) => {
   }
 
   try {
-    const vipExpiresForever =
-      document.getElementById("edit-vip-expires-mode").value === "forever";
-    const vipExpiresAt = memberEditForm.vipExpiresAt.value;
-    const originalForever = Boolean(currentMember.vipExpiresForever);
-    const originalDate = toDateInput(currentMember.vipExpiresAt);
-    const expiryChanged = vipExpiresForever
-      ? !originalForever
-      : originalForever || vipExpiresAt !== originalDate;
-
-    if (!vipExpiresForever && !vipExpiresAt && (originalForever || originalDate)) {
-      memberEditError.textContent = "請選擇會員效期";
-      return;
-    }
-
     const body = {
       displayName: memberEditForm.displayName.value,
       mobile: memberEditForm.mobile.value,
@@ -671,10 +606,6 @@ memberEditForm.addEventListener("submit", async (event) => {
       gender: memberEditForm.gender.value,
       vipId: memberEditForm.vipId.value,
     };
-    if (expiryChanged && (vipExpiresForever || vipExpiresAt)) {
-      body.vipExpiresForever = vipExpiresForever;
-      if (!vipExpiresForever) body.vipExpiresAt = vipExpiresAt;
-    }
 
     await api(`/users/${currentMember.id}`, {
       method: "POST",

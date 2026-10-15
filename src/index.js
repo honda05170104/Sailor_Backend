@@ -90,9 +90,18 @@ app.get("/assets/vips.js", sendAsset("vips/vips.js", "application/javascript"));
 app.get("/assets/vips.css", sendAsset("vips/vips.css", "text/css"));
 
 app.get(["/manager", "/manager/"], sendManagerPage("login/index.html"));
-app.get("/dashboard", (_req, res) => {
-  res.redirect("/members");
-});
+app.get(
+  ["/dashboard", "/dashboard/"],
+  sendManagerPage("dashboard/index.html"),
+);
+app.get(
+  "/assets/dashboard.js",
+  sendAsset("dashboard/dashboard.js", "application/javascript"),
+);
+app.get(
+  "/assets/dashboard.css",
+  sendAsset("dashboard/dashboard.css", "text/css"),
+);
 app.get(["/members", "/members/"], sendManagerPage("members/index.html"));
 app.get(["/coupons", "/coupons/"], sendManagerPage("coupons/index.html"));
 app.get(["/vips", "/vips/"], sendManagerPage("vips/index.html"));
@@ -115,7 +124,7 @@ app.get(
 );
 app.get("/assets/messages.css", sendAsset("messages/messages.css", "text/css"));
 app.get("/dashboad", (_req, res) => {
-  res.redirect("/members");
+  res.redirect("/dashboard");
 });
 
 app.use(express.static(managerPublicDir, { index: false, redirect: false }));

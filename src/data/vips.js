@@ -10,7 +10,7 @@ export const VIPS = [
     rank: 1,
     minSpend: 0,
     discountPercent: 0,
-    /** Points cashback: every `cashbackEvery` spend → `cashbackPoints`. 0 = none. */
+    /** Points cashback: every `cashbackEvery` spend → `cashbackPoints`. 0 = none. 1 point = 1 yuan. */
     cashbackEvery: 0,
     cashbackPoints: 0,
     description: "入會會員。",
@@ -30,6 +30,7 @@ export const VIPS = [
       "近一年累積消費滿 3,500 元",
       "用品類最低 85 折起（活體、餌料除外）",
       "單筆消費滿 300 元，點數回饋 1 點",
+      "1 點對應 1 元",
       "每月 10 號，點數 2 倍送",
       "生日禮 100 元優惠券",
       "寄宿動物一天折 50 元",
@@ -51,6 +52,7 @@ export const VIPS = [
       "用品類 最低 75 折起（活體、餌料除外）",
       "生日禮 300 元優惠券",
       "單筆消費滿 200 元，點數回饋 1 點",
+      "1 點對應 1 元",
       "每月 10、20 號，點數 2 倍送",
       "寄宿動物前3天免費 (一年 2 次)",
       "史麥動物醫院免掛號費 + 每年一次理學健檢(在官方 Line 通知我們幫您進行預約) https://petsmilehospital.com/",
@@ -59,6 +61,9 @@ export const VIPS = [
     ],
   },
 ];
+
+/** 1 point redeems as 1 yuan. */
+export const POINT_YUAN = 1;
 
 /** Lifetime spend threshold for gold downgrade protection. */
 export const GOLD_PROTECT_MIN_LIFETIME_SPEND = 100;

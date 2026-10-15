@@ -227,28 +227,18 @@ function toNonNegativeNumber(value, field) {
 
 const VIP_EXPIRY_TIME_ZONE = "Asia/Taipei";
 
-function parseVipExpiryDay(value) {
-  const raw = String(value || "").trim();
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
-  if (!match) {
-    throw new AppError(
-      { field: "vipExpiresAt", message: "請選擇會員效期" },
-      ErrorCode.BAD_REQUEST,
-    );
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = zonedInstant(VIP_EXPIRY_TIME_ZONE, year, month, day, 23, 59, 59);
-  const parts = zonedParts(date, VIP_EXPIRY_TIME_ZONE);
-  if (parts.year !== year || parts.month !== month || parts.day !== day) {
-    throw new AppError(
-      { field: "vipExpiresAt", message: "會員效期不是有效日期" },
-      ErrorCode.BAD_REQUEST,
-    );
-  }
-  return date;
+function oneYearVipExpiry(now = new Date()) {
+  const parts = zonedParts(now, VIP_EXPIRY_TIME_ZONE);
+  const probe = new Date(Date.UTC(parts.year + 1, parts.month - 1, parts.day));
+  return zonedInstant(
+    VIP_EXPIRY_TIME_ZONE,
+    probe.getUTCFullYear(),
+    probe.getUTCMonth() + 1,
+    probe.getUTCDate(),
+    23,
+    59,
+    59,
+  );
 }
 
 function toFiniteNumber(value, field) {
@@ -335,6 +325,8 @@ export async function updateMember(id, payload = {}, manager) {
     user.storedCredit = toNonNegativeNumber(payload.storedCredit, "storedCredit");
   }
 
+  const previousVip = getVipById(user.vip);
+
   if (payload.vipId !== undefined) {
     const vip = requireVip(payload.vipId);
     if (!vip) {
@@ -346,21 +338,17 @@ export async function updateMember(id, payload = {}, manager) {
     user.vip = vip._id;
   }
 
-  if (isBaseVip(getVipById(user.vip))) {
+  const nextVip = getVipById(user.vip);
+  const upgraded = (nextVip?.rank || 1) > (previousVip?.rank || 1);
+
+  if (isBaseVip(nextVip)) {
     user.vipExpiresForever = false;
     user.vipExpiresManual = false;
     user.vipExpiresAt = null;
-  } else if (payload.vipExpiresForever === true) {
-    user.vipExpiresForever = true;
-    user.vipExpiresManual = true;
-    user.vipExpiresAt = null;
-  } else if (
-    payload.vipExpiresForever === false ||
-    payload.vipExpiresAt !== undefined
-  ) {
+  } else if (upgraded || user.vipExpiresForever || !user.vipExpiresAt) {
     user.vipExpiresForever = false;
-    user.vipExpiresManual = true;
-    user.vipExpiresAt = parseVipExpiryDay(payload.vipExpiresAt);
+    user.vipExpiresManual = false;
+    user.vipExpiresAt = oneYearVipExpiry();
   }
 
   if (payload.tagIds !== undefined) {

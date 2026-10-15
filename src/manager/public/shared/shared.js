@@ -1,7 +1,7 @@
 window.Manager = window.Manager || (function () {
 const TOKEN_KEY = "managerToken";
 const LOGIN_PATH = "/manager/";
-const HOME_PATH = "/members";
+const HOME_PATH = "/dashboard";
 
 let toastTimer = 0;
 let toastHideTimer = 0;
