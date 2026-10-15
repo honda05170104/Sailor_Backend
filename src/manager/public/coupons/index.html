@@ -105,9 +105,11 @@
         </div>
         <label for="coupon-description">說明</label>
         <textarea id="coupon-description" name="description" placeholder="優惠券說明"></textarea>
-        <p class="hint">固定到期日：活動期間內發放，持有到期日＝截止日。發放後幾天：每人從領取當日起算。停用後不能再發，已發出去的券仍保留。</p>
+        <p class="hint">固定到期日：活動期間內發放，持有到期日＝截止日。發放後幾天：每人從領取當日起算。停用後不能再發，已發出去的券仍保留。刪除後同樣不影響已發出去的券。</p>
         <p class="error" id="coupon-error"></p>
         <div class="modal-actions">
+          <button class="ghost danger hidden" id="coupon-delete-btn" type="button">刪除</button>
+          <span class="modal-actions-spacer"></span>
           <button class="ghost" id="coupon-cancel-btn" type="button" onclick="document.getElementById('coupon-modal').classList.add('hidden')">取消</button>
           <button type="submit" id="coupon-submit-btn">新增</button>
         </div>

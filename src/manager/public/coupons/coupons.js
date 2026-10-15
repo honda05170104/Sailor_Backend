@@ -16,6 +16,7 @@ const couponError = document.getElementById("coupon-error");
 const categoryFilter = document.getElementById("coupon-category-filter");
 const fixedFields = document.getElementById("coupon-fixed-fields");
 const relativeFields = document.getElementById("coupon-relative-fields");
+const couponDeleteBtn = document.getElementById("coupon-delete-btn");
 let editingCouponId = null;
 let cachedCoupons = [];
 
@@ -91,6 +92,7 @@ function openCouponModal(coupon) {
     couponForm.enabled.checked = coupon.enabled !== false;
     document.getElementById("coupon-modal-title").textContent = "編輯優惠券";
     document.getElementById("coupon-submit-btn").textContent = "儲存";
+    couponDeleteBtn.classList.remove("hidden");
   } else {
     editingCouponId = null;
     couponForm.reset();
@@ -101,6 +103,7 @@ function openCouponModal(coupon) {
     couponForm.enabled.checked = true;
     document.getElementById("coupon-modal-title").textContent = "新增優惠券";
     document.getElementById("coupon-submit-btn").textContent = "新增";
+    couponDeleteBtn.classList.add("hidden");
   }
   syncCouponValueLimit();
   syncExpiryModeFields();
@@ -110,7 +113,28 @@ function openCouponModal(coupon) {
 function closeCouponModal() {
   couponModal.classList.add("hidden");
   editingCouponId = null;
+  couponDeleteBtn.classList.add("hidden");
 }
+
+couponDeleteBtn.addEventListener("click", async () => {
+  if (!editingCouponId) return;
+  const current = cachedCoupons.find((item) => String(item.id) === String(editingCouponId));
+  const label = current?.name || "這張優惠券";
+  if (!confirm(`確定刪除「${label}」？已發給會員的券不受影響。`)) return;
+  couponError.textContent = "";
+
+  try {
+    await api(`/coupons/${editingCouponId}/delete`, {
+      method: "POST",
+      toast: "已刪除",
+      body: JSON.stringify({}),
+    });
+    closeCouponModal();
+    await loadCoupons();
+  } catch (error) {
+    couponError.textContent = error.message;
+  }
+});
 
 document.getElementById("coupon-type").addEventListener("change", () => {
   syncCouponValueLimit();

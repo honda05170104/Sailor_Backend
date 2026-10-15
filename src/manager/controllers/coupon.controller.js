@@ -19,6 +19,11 @@ export const update = asyncHandler(async (req, res) => {
   return success(res, data);
 });
 
+export const remove = asyncHandler(async (req, res) => {
+  const data = await couponService.removeCoupon(req.params.id);
+  return success(res, data);
+});
+
 export const issue = asyncHandler(async (req, res) => {
   const data = await couponService.issueCoupon(req.params.id, req.body || {});
   return success(res, data);

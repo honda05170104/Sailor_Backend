@@ -44,6 +44,7 @@ router.post("/tags/:id", managerAuth, tagController.update);
 router.get("/coupons", managerAuth, couponController.list);
 router.post("/coupons", managerAuth, couponController.create);
 router.post("/coupons/:id", managerAuth, couponController.update);
+router.post("/coupons/:id/delete", managerAuth, couponController.remove);
 
 router.get("/config", managerAuth, configController.get);
 router.post("/config", managerAuth, configController.update);

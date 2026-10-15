@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Coupon from '../../models/Coupon.js';
+import Promotion from '../../models/Promotion.js';
 import UserCoupon from '../../models/UserCoupon.js';
 import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
@@ -66,6 +67,30 @@ export async function updateCoupon(id, payload = {}) {
   return {
     coupon: coupon.toSafeJSON(),
   };
+}
+
+/** Issued coupons keep their own snapshot, so members can still use them after this. */
+export async function removeCoupon(id) {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError('Coupon not found', ErrorCode.NOT_FOUND);
+  }
+
+  const coupon = await Coupon.findById(id);
+  if (!coupon) {
+    throw new AppError('Coupon not found', ErrorCode.NOT_FOUND);
+  }
+
+  const promotions = await Promotion.find({ coupon: coupon._id }).select('name');
+  if (promotions.length) {
+    const names = promotions.map((promotion) => `「${promotion.name}」`).join('、');
+    throw new AppError(
+      `這張券綁在優惠活動${names}，請先到優惠活動改用其他券再刪除`,
+      ErrorCode.CONFLICT
+    );
+  }
+
+  await coupon.deleteOne();
+  return { id: coupon._id };
 }
 
 export async function listUserCoupons(userId) {
