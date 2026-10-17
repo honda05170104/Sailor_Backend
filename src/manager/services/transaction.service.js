@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import User from '../../models/User.js';
 import Transaction from '../../models/Transaction.js';
+import ImportedOrder from '../../models/ImportedOrder.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import {
@@ -16,6 +17,10 @@ import {
   normalizeOrderStatus,
   generateTxnNo,
 } from '../../services/transactions.js';
+
+function isVoidedStatus(value) {
+  return String(value || '').trim() === '作廢';
+}
 
 function cell(row, ...keys) {
   for (const key of keys) {
@@ -35,6 +40,8 @@ function groupOrders(rows) {
     const key = externalOrderId || orderNo;
     if (!key) continue;
 
+    const rawOrderStatus = cell(row, '訂單狀態', 'orderStatus');
+
     if (!orders.has(key)) {
       const customer = parseCustomerField(cell(row, '客戶', 'customer'));
       orders.set(key, {
@@ -43,9 +50,8 @@ function groupOrders(rows) {
         customerName: customer.name,
         customerMobile: customer.mobile,
         source: cell(row, '訂單來源', 'source'),
-        orderStatus: normalizeOrderStatus(
-          cell(row, '訂單狀態', 'orderStatus')
-        ),
+        orderStatus: normalizeOrderStatus(rawOrderStatus),
+        rawOrderStatus,
         paymentStatus: cell(row, '付款狀態', 'paymentStatus'),
         shippingStatus: cell(row, '出貨狀態', 'shippingStatus'),
         tags: cell(row, '標籤', 'tags'),
@@ -56,10 +62,14 @@ function groupOrders(rows) {
         note: cell(row, '備註', 'note'),
         externalOrderId: externalOrderId || orderNo,
         items: [],
+        rows: [],
       });
     }
 
-    orders.get(key).items.push({
+    const grouped = orders.get(key);
+    if (isVoidedStatus(rawOrderStatus)) grouped.rawOrderStatus = '作廢';
+    grouped.rows.push(row);
+    grouped.items.push({
       name: cell(row, '品名', 'name'),
       sku: cell(row, '貨號', 'sku'),
       barcode: cell(row, '條碼', 'barcode'),
@@ -86,6 +96,26 @@ function buildMobileIndex(users) {
   const index = new Map();
   for (const user of users) addToMobileIndex(index, user);
   return index;
+}
+
+async function saveImportedOrder(branchId, order) {
+  try {
+    const doc = await ImportedOrder.create({
+      branch: branchId,
+      externalOrderId: order.externalOrderId,
+      rows: order.rows,
+    });
+    return { doc, isNew: true };
+  } catch (error) {
+    if (error?.code !== 11000) throw error;
+
+    const doc = await ImportedOrder.findOne({
+      branch: branchId,
+      externalOrderId: order.externalOrderId,
+    });
+    if (!doc) throw error;
+    return { doc, isNew: false };
+  }
 }
 
 async function findOrCreateUser(order, mobileIndex) {
@@ -156,30 +186,66 @@ export async function importOrderExport({ csv, rows, branchId, file } = {}) {
     createdUsers: 0,
     skippedNoMobile: 0,
     skippedDuplicate: 0,
+    skippedVoided: 0,
   };
 
   for (const order of orders) {
-    if (!order.customerMobile) {
-      summary.skippedNoMobile += 1;
+    if (isVoidedStatus(order.rawOrderStatus)) {
+      summary.skippedVoided += 1;
       continue;
+    }
+
+    const { doc: imported, isNew } = await saveImportedOrder(branch._id, order);
+
+    if (!order.customerMobile) {
+      summary[isNew ? 'skippedNoMobile' : 'skippedDuplicate'] += 1;
+      continue;
+    }
+
+    if (!isNew) {
+      const existingTxn = await Transaction.findOne({
+        branch: branch._id,
+        externalOrderId: order.externalOrderId,
+      });
+      if (existingTxn) {
+        if (!existingTxn.importedOrder) {
+          existingTxn.importedOrder = imported._id;
+          await existingTxn.save();
+        }
+        summary.skippedDuplicate += 1;
+        continue;
+      }
     }
 
     const { user, created } = await findOrCreateUser(order, mobileIndex);
     if (created) summary.createdUsers += 1;
 
+    const transactionFields = { ...order };
+    delete transactionFields.rows;
+    delete transactionFields.rawOrderStatus;
+
     try {
-      // Import writes transactions only. VIP tier / upgrade / cashback
+      // Raw order is already stored. VIP tier / upgrade / cashback
       // are calculated by the daily agenda job (vip.dailySync).
       await Transaction.create({
-        ...order,
+        ...transactionFields,
         txnNo: generateTxnNo(),
         user: user._id,
         branch: branch._id,
+        importedOrder: imported._id,
         importedAt: new Date(),
       });
       summary.imported += 1;
     } catch (error) {
       if (error?.code === 11000) {
+        await Transaction.updateOne(
+          {
+            branch: branch._id,
+            externalOrderId: order.externalOrderId,
+            importedOrder: null,
+          },
+          { $set: { importedOrder: imported._id } }
+        );
         summary.skippedDuplicate += 1;
         continue;
       }

@@ -61,6 +61,13 @@ const transactionSchema = new mongoose.Schema(
     staff: { type: String, trim: true, default: '' },
     note: { type: String, trim: true, default: '' },
     externalOrderId: { type: String, trim: true, default: '', index: true },
+    /** Raw import record this transaction was converted from. */
+    importedOrder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ImportedOrder',
+      default: null,
+      index: true,
+    },
     items: { type: [transactionItemSchema], default: [] },
     importedAt: { type: Date, default: Date.now },
     /** When points cashback was applied; null = pending daily cashback job. */
@@ -98,6 +105,7 @@ transactionSchema.methods.toSafeJSON = function toSafeJSON() {
     staff: this.staff,
     note: this.note,
     externalOrderId: this.externalOrderId,
+    importedOrder: this.importedOrder || null,
     items: this.items,
     importedAt: this.importedAt,
     cashbackAt: this.cashbackAt || null,
