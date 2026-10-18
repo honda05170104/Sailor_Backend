@@ -6,6 +6,7 @@ const {
   vipName,
   genderLabel,
   lineStatusHtml,
+  registeredStoreLabel,
   couponTypeLabel,
   couponValueText,
   couponSourceLabel,
@@ -274,6 +275,7 @@ function renderMemberDetail(user, transactions, coupons, speciesReviews) {
   document.getElementById("member-name").textContent = user.displayName || "會員詳情";
   document.getElementById("member-mobile").textContent = user.mobile || "—";
   document.getElementById("member-line").innerHTML = lineStatusHtml(user);
+  document.getElementById("member-store").textContent = registeredStoreLabel(user);
   document.getElementById("member-last-used").textContent = formatDate(user.lastUsedAt);
   document.getElementById("member-birthday").textContent = user.birthday || "—";
   document.getElementById("member-gender").textContent = genderLabel(user.gender);

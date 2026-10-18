@@ -13,6 +13,7 @@
     isLineLinked,
     formatDate,
     formatVipExpiry,
+    registeredStoreLabel,
   } = M;
 
   const importForm = document.getElementById("import-form");
@@ -26,7 +27,7 @@
     cachedUsers = users;
 
     if (!users.length) {
-      rows.innerHTML = `<tr><td colspan="8" class="empty">${
+      rows.innerHTML = `<tr><td colspan="9" class="empty">${
         document.getElementById("member-search").value.trim() ||
         document.getElementById("member-line-filter").value ||
         document.getElementById("member-vip-filter").value
@@ -45,6 +46,7 @@
         <td>${avatar}</td>
         <td>${escapeHtml(user.mobile || "—")}</td>
         <td>${escapeHtml(user.displayName || "—")}</td>
+        <td>${escapeHtml(registeredStoreLabel(user))}</td>
         <td>${escapeHtml(vipName(user))}</td>
         <td>${escapeHtml(formatVipExpiry(user))}</td>
         <td>${escapeHtml(user.totalSpend ?? 0)}</td>

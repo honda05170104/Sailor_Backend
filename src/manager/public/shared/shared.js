@@ -253,6 +253,13 @@ function lineStatusHtml(user) {
     : '<span class="status status-off">未開通</span>';
 }
 
+function registeredStoreLabel(user) {
+  const name = String(user?.registeredStoreName || "").trim();
+  if (!name) return "—";
+  const dash = name.lastIndexOf("-");
+  return dash >= 0 ? name.slice(dash + 1) : name;
+}
+
 const NAV_GROUP_KEY = "managerNavGroups";
 
 function readNavGroupState() {
@@ -346,5 +353,6 @@ return {
   genderLabel,
   isLineLinked,
   lineStatusHtml,
+  registeredStoreLabel,
 };
 })();

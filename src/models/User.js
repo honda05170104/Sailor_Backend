@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+import { getStoreById } from '../data/stores.js';
 import { getVipById, isBaseVip } from '../data/vips.js';
 
 const REQUIRED_PROFILE_FIELDS = ['birthday', 'mobile'];
@@ -37,6 +38,11 @@ const userSchema = new mongoose.Schema(
     avatarUrl: {
       type: String,
       default: '',
+    },
+    /** LINE registration store number. 1 is 台北店. */
+    registeredStore: {
+      type: Number,
+      default: null,
     },
     vip: {
       type: mongoose.Schema.Types.ObjectId,
@@ -124,6 +130,8 @@ userSchema.methods.toSafeJSON = function toSafeJSON() {
     mobile: this.mobile,
     gender: this.gender || '',
     avatarUrl: this.avatarUrl,
+    registeredStore: this.registeredStore ?? null,
+    registeredStoreName: getStoreById(this.registeredStore)?.name || '',
     vip,
     totalSpend: this.totalSpend || 0,
     prepaidFeed: this.prepaidFeed || 0,
