@@ -36,7 +36,7 @@ let currentMember = null;
 
 function memberIdFromPath() {
   const path = location.pathname.replace(/\/+$/, "") || "/";
-  const match = path.match(/^\/members\/([^/]+)$/);
+  const match = path.match(/^\/manager\/members\/([^/]+)$/);
   return match ? match[1] : null;
 }
 
@@ -625,7 +625,7 @@ async function init() {
 
   const memberId = memberIdFromPath();
   if (!memberId) {
-    location.replace("/members");
+    location.replace("/manager/members");
     return;
   }
 

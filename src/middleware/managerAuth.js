@@ -4,7 +4,7 @@ import AppError from '../utils/AppError.js';
 import { ErrorCode } from '../constants/codes.js';
 import asyncHandler from './asyncHandler.js';
 
-const AUTH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const AUTH_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 function getBearerToken(req) {
   const header = req.headers.authorization;

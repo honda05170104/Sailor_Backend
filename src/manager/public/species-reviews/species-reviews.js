@@ -27,7 +27,7 @@ function renderReviews(reviews) {
   reviewRows.innerHTML = reviews
     .map((review) => {
       const member = review.userId
-        ? `<a class="review-member" href="/members/${escapeHtml(review.userId)}">${escapeHtml(memberLabel(review))}</a>`
+        ? `<a class="review-member" href="/manager/members/${escapeHtml(review.userId)}">${escapeHtml(memberLabel(review))}</a>`
         : escapeHtml(memberLabel(review));
 
       return `<tr>

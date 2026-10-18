@@ -12,34 +12,34 @@
     <div class="layout">
       <aside>
         <h1>水手 會員管理系統</h1>
-        <a id="nav-dashboard" class="active" href="/dashboard">總覽</a>
+        <a id="nav-dashboard" class="active" href="/manager/dashboard">總覽</a>
         <div class="nav-group" data-nav-key="會員">
           <button class="nav-group-title" type="button" aria-expanded="true">會員</button>
           <div class="nav-group-items"><div class="nav-group-items-inner">
-          <a id="nav-members" href="/members">會員管理</a>
-          <a id="nav-messages" href="/messages">群發訊息</a>
+          <a id="nav-members" href="/manager/members">會員管理</a>
+          <a id="nav-messages" href="/manager/messages">群發訊息</a>
           </div></div>
         </div>
         <div class="nav-group" data-nav-key="行銷">
           <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
           <div class="nav-group-items"><div class="nav-group-items-inner">
-          <a id="nav-promotions" href="/promotions">優惠活動</a>
-          <a id="nav-coupons" href="/coupons">優惠券</a>
+          <a id="nav-promotions" href="/manager/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/manager/coupons">優惠券</a>
           </div></div>
         </div>
         <div class="nav-group" data-nav-key="物種">
           <button class="nav-group-title" type="button" aria-expanded="true">物種</button>
           <div class="nav-group-items"><div class="nav-group-items-inner">
-          <a id="nav-species" href="/species">物種</a>
-          <a id="nav-species-reviews" href="/species-reviews">送審</a>
+          <a id="nav-species" href="/manager/species">物種</a>
+          <a id="nav-species-reviews" href="/manager/species-reviews">送審</a>
           </div></div>
         </div>
         <div class="nav-group" data-nav-key="設定">
           <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
           <div class="nav-group-items"><div class="nav-group-items-inner">
-          <a id="nav-branches" href="/branches">分店</a>
-          <a id="nav-vips" href="/vips">VIP 規則</a>
-          <a id="nav-settings" href="/settings">系統設定</a>
+          <a id="nav-branches" href="/manager/branches">分店</a>
+          <a id="nav-vips" href="/manager/vips">VIP 規則</a>
+          <a id="nav-settings" href="/manager/settings">系統設定</a>
           </div></div>
         </div>
         <button class="link" id="logout-btn" type="button" onclick="localStorage.removeItem('managerToken');location.replace('/manager/')">登出</button>

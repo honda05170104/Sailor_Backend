@@ -41,7 +41,7 @@
         const avatar = user.avatarUrl
           ? `<img class="avatar" src="${escapeHtml(user.avatarUrl)}" alt="" />`
           : `<span class="avatar"></span>`;
-        return `<tr class="clickable" data-href="/members/${escapeHtml(user.id)}">
+        return `<tr class="clickable" data-href="/manager/members/${escapeHtml(user.id)}">
         <td>${avatar}</td>
         <td>${escapeHtml(user.mobile || "—")}</td>
         <td>${escapeHtml(user.displayName || "—")}</td>
@@ -134,7 +134,7 @@
   });
 
   document.getElementById("message-open-btn").addEventListener("click", () => {
-    location.href = "/messages";
+    location.href = "/manager/messages";
   });
 
   document.getElementById("member-search").addEventListener("keydown", (event) => {

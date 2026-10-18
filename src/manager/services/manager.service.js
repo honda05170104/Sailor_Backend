@@ -5,8 +5,6 @@ import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 
 async function issueManagerToken(manager) {
-  await Token.deleteMany({ manager: manager._id });
-
   const tokenDoc = await Token.create({
     token: crypto.randomBytes(32).toString('hex'),
     issuedAt: new Date(),

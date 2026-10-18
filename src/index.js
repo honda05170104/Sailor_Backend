@@ -89,11 +89,26 @@ app.get("/assets/settings.css", sendAsset("settings/settings.css", "text/css"));
 app.get("/assets/vips.js", sendAsset("vips/vips.js", "application/javascript"));
 app.get("/assets/vips.css", sendAsset("vips/vips.css", "text/css"));
 
+const MANAGER_PAGES = [
+  ["/dashboard", "dashboard/index.html"],
+  ["/members", "members/index.html"],
+  ["/coupons", "coupons/index.html"],
+  ["/vips", "vips/index.html"],
+  ["/tags", "tags/index.html"],
+  ["/settings", "settings/index.html"],
+  ["/species", "species/index.html"],
+  ["/species-reviews", "species-reviews/index.html"],
+  ["/branches", "branches/index.html"],
+  ["/promotions", "promotions/index.html"],
+  ["/messages", "messages/index.html"],
+];
+
 app.get(["/manager", "/manager/"], sendManagerPage("login/index.html"));
-app.get(
-  ["/dashboard", "/dashboard/"],
-  sendManagerPage("dashboard/index.html"),
-);
+
+for (const [route, file] of MANAGER_PAGES) {
+  app.get([`/manager${route}`, `/manager${route}/`], sendManagerPage(file));
+}
+
 app.get(
   "/assets/dashboard.js",
   sendAsset("dashboard/dashboard.js", "application/javascript"),
@@ -102,36 +117,39 @@ app.get(
   "/assets/dashboard.css",
   sendAsset("dashboard/dashboard.css", "text/css"),
 );
-app.get(["/members", "/members/"], sendManagerPage("members/index.html"));
-app.get(["/coupons", "/coupons/"], sendManagerPage("coupons/index.html"));
-app.get(["/vips", "/vips/"], sendManagerPage("vips/index.html"));
-app.get(["/tags", "/tags/"], sendManagerPage("tags/index.html"));
-app.get(["/settings", "/settings/"], sendManagerPage("settings/index.html"));
-app.get(["/species", "/species/"], sendManagerPage("species/index.html"));
-app.get(
-  ["/species-reviews", "/species-reviews/"],
-  sendManagerPage("species-reviews/index.html"),
-);
-app.get(["/branches", "/branches/"], sendManagerPage("branches/index.html"));
-app.get(
-  ["/promotions", "/promotions/"],
-  sendManagerPage("promotions/index.html"),
-);
-app.get(["/messages", "/messages/"], sendManagerPage("messages/index.html"));
 app.get(
   "/assets/messages.js",
   sendAsset("messages/messages.js", "application/javascript"),
 );
 app.get("/assets/messages.css", sendAsset("messages/messages.css", "text/css"));
-app.get("/dashboad", (_req, res) => {
-  res.redirect("/dashboard");
-});
+
+function redirectToManager(route) {
+  return (req, res) => {
+    const queryIndex = req.originalUrl.indexOf("?");
+    const query = queryIndex === -1 ? "" : req.originalUrl.slice(queryIndex);
+    res.redirect(`/manager${route}${query}`);
+  };
+}
+
+app.get(
+  ["/dashboad", "/dashboad/", "/manager/dashboad", "/manager/dashboad/"],
+  redirectToManager("/dashboard"),
+);
+
+for (const [route] of MANAGER_PAGES) {
+  app.get([route, `${route}/`], redirectToManager(route));
+}
 
 app.use(express.static(managerPublicDir, { index: false, redirect: false }));
 
-app.get("/members/:id", (req, res, next) => {
+app.get("/manager/members/:id", (req, res, next) => {
   if (path.extname(req.params.id)) return next();
   return sendManagerPage("member-detail/index.html")(req, res);
+});
+
+app.get("/members/:id", (req, res, next) => {
+  if (path.extname(req.params.id)) return next();
+  return redirectToManager(`/members/${req.params.id}`)(req, res);
 });
 
 app.use("/api/v1/user", userRoutes);
