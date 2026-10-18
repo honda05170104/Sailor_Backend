@@ -451,33 +451,9 @@
   min-width: 220px;
 }
 
-.tx-items summary {
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.tx-items summary::-webkit-details-marker {
-  display: none;
-}
-
-.tx-items summary::before {
-  content: "▸";
-  flex: 0 0 auto;
-  color: var(--muted);
-  transition: transform 0.15s ease;
-}
-
-.tx-items[open] summary::before {
-  transform: rotate(90deg);
-}
-
 .tx-items ul {
-  margin: 8px 0 0;
-  padding: 8px 0 0 18px;
-  border-top: 1px dashed var(--line);
+  margin: 0;
+  padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;

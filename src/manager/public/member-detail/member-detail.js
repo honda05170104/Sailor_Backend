@@ -324,12 +324,6 @@ const BALANCE_ITEM_NAMES = new Set([
   "儲值金扣除",
 ]);
 
-function itemLabel(item) {
-  const name = item.name || "未命名";
-  if (BALANCE_ITEM_NAMES.has(name)) return name;
-  return `${name} × ${item.quantity ?? 0}`;
-}
-
 function itemSubtotal(item) {
   const subtotal = Number(item.subtotal) || 0;
   if (subtotal) return subtotal;
@@ -355,16 +349,7 @@ function itemDetailHtml(item) {
 
 function transactionItemsHtml(items) {
   if (!items.length) return "無品項";
-
-  const summary =
-    items.length === 1
-      ? itemLabel(items[0])
-      : `${items[0].name || "未命名"} 等 ${items.length} 項`;
-
-  return `<details class="tx-items">
-    <summary>${escapeHtml(summary)}</summary>
-    <ul>${items.map(itemDetailHtml).join("")}</ul>
-  </details>`;
+  return `<div class="tx-items"><ul>${items.map(itemDetailHtml).join("")}</ul></div>`;
 }
 
 async function loadMemberDetail(id) {
