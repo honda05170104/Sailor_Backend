@@ -107,6 +107,7 @@ const MANAGER_PAGES = [
   ["/species", "species/index.html"],
   ["/species-reviews", "species-reviews/index.html"],
   ["/branches", "branches/index.html"],
+  ["/imported-orders", "imported-orders/index.html"],
   ["/promotions", "promotions/index.html"],
   ["/messages", "messages/index.html"],
 ];

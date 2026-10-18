@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>匯入紀錄｜水手 會員管理系統</title>
+    <link rel="stylesheet" href="/shared/shared.css" />
+    <link rel="stylesheet" href="/imported-orders/imported-orders.css" />
+  </head>
+  <body>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <div class="layout">
+      <aside>
+        <h1>水手 會員管理系統</h1>
+        <a id="nav-dashboard" href="/manager/dashboard">總覽</a>
+        <div class="nav-group" data-nav-key="會員">
+          <button class="nav-group-title" type="button" aria-expanded="true">會員</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-members" href="/manager/members">會員管理</a>
+          <a id="nav-messages" href="/manager/messages">群發訊息</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="行銷">
+          <button class="nav-group-title" type="button" aria-expanded="true">行銷</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-promotions" href="/manager/promotions">優惠活動</a>
+          <a id="nav-coupons" href="/manager/coupons">優惠券</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="物種">
+          <button class="nav-group-title" type="button" aria-expanded="true">物種</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-species" href="/manager/species">物種</a>
+          <a id="nav-species-reviews" href="/manager/species-reviews">送審</a>
+          </div></div>
+        </div>
+        <div class="nav-group" data-nav-key="設定">
+          <button class="nav-group-title" type="button" aria-expanded="true">設定</button>
+          <div class="nav-group-items"><div class="nav-group-items-inner">
+          <a id="nav-branches" href="/manager/branches">分店</a>
+          <a id="nav-imported-orders" class="active" href="/manager/imported-orders">匯入紀錄</a>
+          <a id="nav-vips" href="/manager/vips">VIP 規則</a>
+          <a id="nav-settings" href="/manager/settings">系統設定</a>
+          </div></div>
+        </div>
+        <button class="link" id="logout-btn" type="button">登出</button>
+
+        <div class="who" id="who"></div>
+      </aside>
+      <main>
+        <div class="page-head">
+          <h2>匯入紀錄</h2>
+          <div class="toolbar">
+            <select id="import-branch"></select>
+            <input id="import-date" type="date" />
+            <button id="import-search-btn" type="button">查詢</button>
+          </div>
+        </div>
+        <div class="panel">
+          <p class="hint" id="import-summary">請選擇分店與日期</p>
+          <table>
+            <thead>
+              <tr>
+                <th>分店</th>
+                <th>POS 訂單ID</th>
+                <th>客戶</th>
+                <th>電話</th>
+                <th>品項</th>
+                <th>總金額</th>
+                <th>匯入時間</th>
+              </tr>
+            </thead>
+            <tbody id="import-rows">
+              <tr>
+                <td colspan="7" class="empty">請選擇分店與日期後查詢</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <script src="/shared/shared.js"></script>
+    <script src="/imported-orders/imported-orders.js"></script>
+  </body>
+</html>

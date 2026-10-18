@@ -1,0 +1,27 @@
+.toolbar select,
+.toolbar input[type="date"] {
+  width: 220px;
+}
+
+.import-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.import-items li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px 12px;
+  align-items: baseline;
+  font-size: 13px;
+}
+
+.import-item-qty {
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

@@ -12,6 +12,7 @@ import * as promotionController from "../controllers/promotion.controller.js";
 import * as speciesController from "../controllers/species.controller.js";
 import * as messageController from "../controllers/message.controller.js";
 import * as dashboardController from "../controllers/dashboard.controller.js";
+import * as importedOrderController from "../controllers/imported-order.controller.js";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.get("/me", managerAuth, managerController.me);
 router.get("/dashboard", managerAuth, dashboardController.get);
 
 router.get("/branches", managerAuth, branchController.list);
+router.get("/imported-orders", managerAuth, importedOrderController.list);
 router.get("/users", managerAuth, memberController.list);
 router.get("/users/:id", managerAuth, memberController.get);
 router.post("/users/:id", managerAuth, memberController.update);
