@@ -88,6 +88,14 @@ app.get(
 app.get("/assets/settings.css", sendAsset("settings/settings.css", "text/css"));
 app.get("/assets/vips.js", sendAsset("vips/vips.js", "application/javascript"));
 app.get("/assets/vips.css", sendAsset("vips/vips.css", "text/css"));
+app.get(
+  "/assets/member-detail.js",
+  sendAsset("member-detail/member-detail.js", "application/javascript"),
+);
+app.get(
+  "/assets/member-detail.css",
+  sendAsset("member-detail/member-detail.css", "text/css"),
+);
 
 const MANAGER_PAGES = [
   ["/dashboard", "dashboard/index.html"],
@@ -140,7 +148,15 @@ for (const [route] of MANAGER_PAGES) {
   app.get([route, `${route}/`], redirectToManager(route));
 }
 
-app.use(express.static(managerPublicDir, { index: false, redirect: false }));
+app.use(
+  express.static(managerPublicDir, {
+    index: false,
+    redirect: false,
+    setHeaders(res) {
+      res.setHeader("Cache-Control", "no-store");
+    },
+  }),
+);
 
 app.get("/manager/members/:id", (req, res, next) => {
   if (path.extname(req.params.id)) return next();
