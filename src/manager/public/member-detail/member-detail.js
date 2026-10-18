@@ -301,28 +301,10 @@ function renderMemberDetail(user, transactions, coupons, speciesReviews) {
 
   rows.innerHTML = transactions
     .map((tx) => {
-      const items = (tx.items || [])
-        .map((item) => {
-          const name = item.name || "未命名";
-          if (
-            name === "點數增加" ||
-            name === "點數扣除" ||
-            name === "點數兌換" ||
-            name === "點數回饋" ||
-            name === "現金回饋" ||
-            name === "儲值金增加" ||
-            name === "儲值金扣除"
-          ) {
-            return name;
-          }
-          if (name === "儲值金增加" || name === "儲值金扣除") return name;
-          return `${name} × ${item.quantity ?? 0}`;
-        })
-        .join("、");
       return `<tr>
         <td>${escapeHtml(tx.txnNo || "—")}</td>
         <td>${escapeHtml(branchName(tx))}</td>
-        <td>${escapeHtml(items || "無品項")}</td>
+        <td>${transactionItemsHtml(tx.items || [])}</td>
         <td>${escapeHtml(tx.totalAmount ?? 0)}</td>
         <td>${escapeHtml(tx.paymentMethod || "—")}</td>
         <td>${escapeHtml(tx.orderStatusLabel || tx.orderStatus || "—")}</td>
@@ -330,6 +312,59 @@ function renderMemberDetail(user, transactions, coupons, speciesReviews) {
       </tr>`;
     })
     .join("");
+}
+
+const BALANCE_ITEM_NAMES = new Set([
+  "點數增加",
+  "點數扣除",
+  "點數兌換",
+  "點數回饋",
+  "現金回饋",
+  "儲值金增加",
+  "儲值金扣除",
+]);
+
+function itemLabel(item) {
+  const name = item.name || "未命名";
+  if (BALANCE_ITEM_NAMES.has(name)) return name;
+  return `${name} × ${item.quantity ?? 0}`;
+}
+
+function itemSubtotal(item) {
+  const subtotal = Number(item.subtotal) || 0;
+  if (subtotal) return subtotal;
+  return (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
+}
+
+function itemDetailHtml(item) {
+  const name = item.name || "未命名";
+  const subtotal = itemSubtotal(item);
+  if (BALANCE_ITEM_NAMES.has(name)) {
+    return `<li>
+      <span class="tx-item-name">${escapeHtml(name)}</span>
+      <span class="tx-item-qty"></span>
+      <span class="tx-item-subtotal">${subtotal ? escapeHtml(subtotal) : ""}</span>
+    </li>`;
+  }
+  return `<li>
+    <span class="tx-item-name">${escapeHtml(name)}</span>
+    <span class="tx-item-qty">${escapeHtml(item.unitPrice ?? 0)} × ${escapeHtml(item.quantity ?? 0)}</span>
+    <span class="tx-item-subtotal">${escapeHtml(subtotal)}</span>
+  </li>`;
+}
+
+function transactionItemsHtml(items) {
+  if (!items.length) return "無品項";
+
+  const summary =
+    items.length === 1
+      ? itemLabel(items[0])
+      : `${items[0].name || "未命名"} 等 ${items.length} 項`;
+
+  return `<details class="tx-items">
+    <summary>${escapeHtml(summary)}</summary>
+    <ul>${items.map(itemDetailHtml).join("")}</ul>
+  </details>`;
 }
 
 async function loadMemberDetail(id) {
