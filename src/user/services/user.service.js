@@ -9,6 +9,7 @@ import {
   getVerifiedLineProfile,
 } from './line.service.js';
 import { normalizeMobile } from '../../services/orderImport.js';
+import { parseStoreNumber } from '../../data/stores.js';
 import { defaultVip, syncUserVip, vipProgress, listVips } from '../../services/vip.js';
 import { applyTagIds } from '../../services/tags.js';
 import { listUserCoupons, countAvailableCoupons } from '../../manager/services/coupon.service.js';
@@ -165,9 +166,10 @@ export async function exchangeLineToken({ code, redirectUri, codeVerifier } = {}
   }
 }
 
-export async function authWithLine({ accessToken }) {
+export async function authWithLine({ accessToken, storeId }) {
   await requireAccessToken(accessToken);
   const profile = await getLineProfileOrThrow(accessToken);
+  const registeredStore = parseStoreNumber(storeId);
 
   let user = await User.findOne({ lineUserId: profile.lineUserId });
   const isNew = !user;
@@ -178,11 +180,15 @@ export async function authWithLine({ accessToken }) {
       displayName: profile.displayName || '',
       avatarUrl: profile.avatarUrl || '',
       vip: (await defaultVip())._id,
+      registeredStore,
     });
   } else {
     user.displayName = profile.displayName || user.displayName;
     if (!user.avatarUrl && profile.avatarUrl) {
       user.avatarUrl = profile.avatarUrl;
+    }
+    if (user.registeredStore == null && registeredStore != null) {
+      user.registeredStore = registeredStore;
     }
     await user.save();
   }

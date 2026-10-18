@@ -100,6 +100,13 @@ export function getStoreById(id) {
   return null;
 }
 
+/** Store number from a LIFF link, or null if it is not one of ours. */
+export function parseStoreNumber(value) {
+  const storeId = Number(String(value ?? '').trim());
+  if (!Number.isInteger(storeId)) return null;
+  return storeByStoreId.has(storeId) ? storeId : null;
+}
+
 export function requireStore(id) {
   const store = getStoreById(id);
   if (!store) return null;
