@@ -55,7 +55,11 @@
           </div>
           <div class="toolbar" id="import-list-toolbar">
             <select id="import-branch"></select>
-            <input id="import-date" type="date" />
+            <div class="date-nav">
+              <button id="import-date-prev" type="button" aria-label="前一天">‹</button>
+              <input id="import-date" type="date" />
+              <button id="import-date-next" type="button" aria-label="後一天">›</button>
+            </div>
             <button id="import-search-btn" type="button">查詢</button>
           </div>
         </div>

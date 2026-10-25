@@ -3,6 +3,24 @@
   width: 220px;
 }
 
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.date-nav input[type="date"] {
+  width: 168px;
+}
+
+.date-nav button {
+  width: 36px;
+  height: 40px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
 .back {
   display: inline-block;
   color: var(--accent);

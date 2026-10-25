@@ -16,6 +16,17 @@ function todayTaipei() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
 }
 
+function shiftDate(value, days) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  const base = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date();
+  base.setDate(base.getDate() + days);
+  const month = String(base.getMonth() + 1).padStart(2, "0");
+  const day = String(base.getDate()).padStart(2, "0");
+  return `${base.getFullYear()}-${month}-${day}`;
+}
+
 function storeLabel(store) {
   const name = String(store?.name || "").trim();
   if (!name) return "—";
@@ -191,6 +202,15 @@ async function init() {
   });
 
   dateInput.addEventListener("change", () => {
+    closeDetail(true).catch(() => {});
+  });
+
+  document.getElementById("import-date-prev").addEventListener("click", () => {
+    dateInput.value = shiftDate(dateInput.value || todayTaipei(), -1);
+    closeDetail(true).catch(() => {});
+  });
+  document.getElementById("import-date-next").addEventListener("click", () => {
+    dateInput.value = shiftDate(dateInput.value || todayTaipei(), 1);
     closeDetail(true).catch(() => {});
   });
   branchSelect.addEventListener("change", () => {
