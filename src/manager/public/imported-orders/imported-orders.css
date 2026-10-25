@@ -3,6 +3,18 @@
   width: 220px;
 }
 
+.back {
+  display: inline-block;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.page-head .back {
+  display: block;
+  margin-bottom: 8px;
+}
+
 .import-items {
   margin: 0;
   padding: 0;

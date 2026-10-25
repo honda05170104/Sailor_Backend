@@ -20,6 +20,13 @@ const importedOrderSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    /** Parent import batch this order was read from. */
+    import: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OrderImport',
+      default: null,
+      index: true,
+    },
     /** POS 訂單 ID. Groups the raw rows and blocks a second import. */
     externalOrderId: {
       type: String,
@@ -44,6 +51,7 @@ importedOrderSchema.methods.toSafeJSON = function toSafeJSON() {
   const customer = parseCustomerField(cell(first, '客戶', 'customer'));
   return {
     id: this._id,
+    import: this.import || null,
     branch: store,
     externalOrderId: this.externalOrderId || '',
     customerName: customer.name,

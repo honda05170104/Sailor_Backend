@@ -7,6 +7,7 @@ export const list = asyncHandler(async (req, res) => {
     req.query.q,
     req.query.line,
     req.query.vip,
+    req.query.page,
   );
   return success(res, data);
 });

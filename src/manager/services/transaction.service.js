@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import User from '../../models/User.js';
 import Transaction from '../../models/Transaction.js';
 import ImportedOrder from '../../models/ImportedOrder.js';
+import OrderImport from '../../models/OrderImport.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import {
@@ -18,8 +19,18 @@ import {
   generateTxnNo,
 } from '../../services/transactions.js';
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 function isVoidedStatus(value) {
   return String(value || '').trim() === '作廢';
+}
+
+function parseOrderDate(value) {
+  const date = String(value || '').trim();
+  if (!DATE_RE.test(date)) return '';
+  const start = new Date(`${date}T00:00:00+08:00`);
+  if (Number.isNaN(start.getTime())) return '';
+  return date;
 }
 
 function cell(row, ...keys) {
@@ -98,9 +109,10 @@ function buildMobileIndex(users) {
   return index;
 }
 
-async function saveImportedOrder(branchId, order) {
+async function saveImportedOrder(branchId, order, importId) {
   try {
     const doc = await ImportedOrder.create({
+      import: importId,
       branch: branchId,
       externalOrderId: order.externalOrderId,
       rows: order.rows,
@@ -143,11 +155,25 @@ async function findOrCreateUser(order, mobileIndex) {
   }
 }
 
-export async function importOrderExport({ csv, rows, branchId, file } = {}) {
+export async function importOrderExport({
+  csv,
+  rows,
+  branchId,
+  file,
+  orderDate: rawOrderDate,
+} = {}) {
   const id = String(branchId || '').trim();
   if (!id || !mongoose.isValidObjectId(id)) {
     throw new AppError(
       { field: 'branchId', message: '請選擇分店' },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+
+  const orderDate = parseOrderDate(rawOrderDate);
+  if (!orderDate) {
+    throw new AppError(
+      { field: 'orderDate', message: '請選擇交易日期' },
       ErrorCode.BAD_REQUEST
     );
   }
@@ -189,69 +215,99 @@ export async function importOrderExport({ csv, rows, branchId, file } = {}) {
     skippedVoided: 0,
   };
 
-  for (const order of orders) {
-    if (isVoidedStatus(order.rawOrderStatus)) {
-      summary.skippedVoided += 1;
-      continue;
-    }
+  const batch = await OrderImport.create({
+    branch: branch._id,
+    fileName: String(file?.originalname || '').trim(),
+    orderDate,
+    totalOrders: orders.length,
+  });
 
-    const { doc: imported, isNew } = await saveImportedOrder(branch._id, order);
+  try {
+    for (const order of orders) {
+      if (isVoidedStatus(order.rawOrderStatus)) {
+        summary.skippedVoided += 1;
+        continue;
+      }
 
-    if (!order.customerMobile) {
-      summary[isNew ? 'skippedNoMobile' : 'skippedDuplicate'] += 1;
-      continue;
-    }
+      const { doc: imported, isNew } = await saveImportedOrder(
+        branch._id,
+        order,
+        batch._id
+      );
 
-    if (!isNew) {
-      const existingTxn = await Transaction.findOne({
-        branch: branch._id,
-        externalOrderId: order.externalOrderId,
-      });
-      if (existingTxn) {
-        if (!existingTxn.importedOrder) {
-          existingTxn.importedOrder = imported._id;
-          await existingTxn.save();
+      if (!order.customerMobile) {
+        summary[isNew ? 'skippedNoMobile' : 'skippedDuplicate'] += 1;
+        continue;
+      }
+
+      if (!isNew) {
+        const existingTxn = await Transaction.findOne({
+          branch: branch._id,
+          externalOrderId: order.externalOrderId,
+        });
+        if (existingTxn) {
+          if (!existingTxn.importedOrder) {
+            existingTxn.importedOrder = imported._id;
+            await existingTxn.save();
+          }
+          summary.skippedDuplicate += 1;
+          continue;
         }
-        summary.skippedDuplicate += 1;
-        continue;
+      }
+
+      const { user, created } = await findOrCreateUser(order, mobileIndex);
+      if (created) summary.createdUsers += 1;
+
+      const transactionFields = { ...order };
+      delete transactionFields.rows;
+      delete transactionFields.rawOrderStatus;
+
+      try {
+        // Raw order is already stored. VIP tier / upgrade / cashback
+        // are calculated by the daily agenda job (vip.dailySync).
+        await Transaction.create({
+          ...transactionFields,
+          txnNo: generateTxnNo(),
+          user: user._id,
+          branch: branch._id,
+          importedOrder: imported._id,
+          importedAt: new Date(),
+        });
+        summary.imported += 1;
+      } catch (error) {
+        if (error?.code === 11000) {
+          await Transaction.updateOne(
+            {
+              branch: branch._id,
+              externalOrderId: order.externalOrderId,
+              importedOrder: null,
+            },
+            { $set: { importedOrder: imported._id } }
+          );
+          summary.skippedDuplicate += 1;
+          continue;
+        }
+        throw error;
       }
     }
 
-    const { user, created } = await findOrCreateUser(order, mobileIndex);
-    if (created) summary.createdUsers += 1;
-
-    const transactionFields = { ...order };
-    delete transactionFields.rows;
-    delete transactionFields.rawOrderStatus;
-
-    try {
-      // Raw order is already stored. VIP tier / upgrade / cashback
-      // are calculated by the daily agenda job (vip.dailySync).
-      await Transaction.create({
-        ...transactionFields,
-        txnNo: generateTxnNo(),
-        user: user._id,
-        branch: branch._id,
-        importedOrder: imported._id,
-        importedAt: new Date(),
-      });
-      summary.imported += 1;
-    } catch (error) {
-      if (error?.code === 11000) {
-        await Transaction.updateOne(
-          {
-            branch: branch._id,
-            externalOrderId: order.externalOrderId,
-            importedOrder: null,
-          },
-          { $set: { importedOrder: imported._id } }
-        );
-        summary.skippedDuplicate += 1;
-        continue;
+    Object.assign(batch, summary);
+    return {
+      ...summary,
+      import: batch.toSafeJSON(),
+    };
+  } finally {
+    await OrderImport.updateOne(
+      { _id: batch._id },
+      {
+        $set: {
+          totalOrders: summary.totalOrders,
+          imported: summary.imported,
+          skippedNoMobile: summary.skippedNoMobile,
+          skippedDuplicate: summary.skippedDuplicate,
+          skippedVoided: summary.skippedVoided,
+        },
       }
-      throw error;
-    }
+    );
   }
-
-  return summary;
 }

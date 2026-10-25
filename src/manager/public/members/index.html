@@ -87,6 +87,11 @@
               </tr>
             </tbody>
           </table>
+          <div class="pager hidden" id="member-pager">
+            <button class="ghost" id="member-prev" type="button">上一頁</button>
+            <span class="pager-label" id="member-page-label"></span>
+            <button class="ghost" id="member-next" type="button">下一頁</button>
+          </div>
         </div>
       </main>
     </div>
@@ -98,6 +103,8 @@
         <select id="import-branch" name="branchId" required>
           <option value="">請選擇分店</option>
         </select>
+        <label for="import-order-date">交易日期</label>
+        <input id="import-order-date" name="orderDate" type="date" required />
         <label for="import-file">檔案</label>
         <input
           id="import-file"
@@ -106,7 +113,7 @@
           accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
           required
         />
-        <p class="hint">支援 CSV、TXT、XLSX。匯入前必須選擇分店，這批訂單會記成該店消費。會用客戶電話對應會員，有電話但還沒註冊會先建立會員。</p>
+        <p class="hint">支援 CSV、TXT、XLSX。匯入前必須選擇分店與交易日期，這批會記成該店、該天的消費。會用客戶電話對應會員，有電話但還沒註冊會先建立會員。</p>
         <p class="error" id="import-error"></p>
         <p class="hint" id="import-result"></p>
         <div class="modal-actions">

@@ -1,52 +1,77 @@
+import mongoose from 'mongoose';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import ImportedOrder from '../../models/ImportedOrder.js';
+import OrderImport from '../../models/OrderImport.js';
 import { requireStore } from '../../data/stores.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function taipeiDayRange(date) {
+function parseOrderDate(value) {
+  const date = String(value || '').trim();
+  if (!DATE_RE.test(date)) return '';
   const start = new Date(`${date}T00:00:00+08:00`);
-  if (Number.isNaN(start.getTime())) return null;
+  if (Number.isNaN(start.getTime())) return '';
+  return date;
+}
+
+function branchFilter(branchId) {
+  if (!branchId) return {};
+  const branch = requireStore(branchId);
+  if (!branch) {
+    throw new AppError(
+      { field: 'branchId', message: '找不到分店' },
+      ErrorCode.NOT_FOUND
+    );
+  }
+  return { branch: branch._id };
+}
+
+export async function listOrderImports({ branchId, date } = {}) {
+  const filter = branchFilter(branchId);
+
+  if (date) {
+    const orderDate = parseOrderDate(date);
+    if (!orderDate) {
+      throw new AppError(
+        { field: 'date', message: '日期格式不正確' },
+        ErrorCode.BAD_REQUEST
+      );
+    }
+    filter.orderDate = orderDate;
+  }
+
+  const orderImports = await OrderImport.find(filter).sort({
+    orderDate: -1,
+    createdAt: -1,
+  });
   return {
-    start,
-    end: new Date(start.getTime() + 24 * 60 * 60 * 1000),
+    orderImports: orderImports.map((doc) => doc.toSafeJSON()),
   };
 }
 
-export async function listImportedOrders({ branchId, date } = {}) {
-  const filter = {};
-
-  if (branchId) {
-    const branch = requireStore(branchId);
-    if (!branch) {
-      throw new AppError(
-        { field: 'branchId', message: '找不到分店' },
-        ErrorCode.NOT_FOUND
-      );
-    }
-    filter.branch = branch._id;
+export async function getOrderImport(id) {
+  if (!id || !mongoose.isValidObjectId(id)) {
+    throw new AppError(
+      { field: 'id', message: '找不到匯入紀錄' },
+      ErrorCode.NOT_FOUND
+    );
   }
 
-  if (date) {
-    if (!DATE_RE.test(String(date).trim())) {
-      throw new AppError(
-        { field: 'date', message: '日期格式不正確' },
-        ErrorCode.BAD_REQUEST
-      );
-    }
-    const range = taipeiDayRange(String(date).trim());
-    if (!range) {
-      throw new AppError(
-        { field: 'date', message: '日期格式不正確' },
-        ErrorCode.BAD_REQUEST
-      );
-    }
-    filter.createdAt = { $gte: range.start, $lt: range.end };
+  const orderImport = await OrderImport.findById(id);
+  if (!orderImport) {
+    throw new AppError(
+      { field: 'id', message: '找不到匯入紀錄' },
+      ErrorCode.NOT_FOUND
+    );
   }
 
-  const importedOrders = await ImportedOrder.find(filter).sort({ createdAt: -1 });
+  const importedOrders = await ImportedOrder.find({
+    import: orderImport._id,
+  }).sort({ createdAt: -1 });
+
   return {
+    orderImport: orderImport.toSafeJSON(),
     importedOrders: importedOrders.map((doc) => doc.toSafeJSON()),
   };
 }

@@ -49,30 +49,54 @@
       </aside>
       <main>
         <div class="page-head">
-          <h2>匯入紀錄</h2>
-          <div class="toolbar">
+          <div>
+            <a class="back hidden" id="import-back" href="/manager/imported-orders">← 匯入紀錄</a>
+            <h2 id="import-title">匯入紀錄</h2>
+          </div>
+          <div class="toolbar" id="import-list-toolbar">
             <select id="import-branch"></select>
             <input id="import-date" type="date" />
             <button id="import-search-btn" type="button">查詢</button>
           </div>
         </div>
-        <div class="panel">
-          <p class="hint" id="import-summary">請選擇分店與日期</p>
+        <div class="panel" id="import-list-panel">
+          <p class="hint" id="import-summary">請選擇分店與交易日</p>
           <table>
             <thead>
               <tr>
+                <th>交易日</th>
                 <th>分店</th>
-                <th>POS 訂單ID</th>
-                <th>客戶</th>
-                <th>電話</th>
-                <th>品項</th>
-                <th>總金額</th>
+                <th>檔名</th>
+                <th>總訂單</th>
+                <th>成功轉交易</th>
+                <th>沒電話</th>
+                <th>重複</th>
+                <th>作廢</th>
                 <th>匯入時間</th>
               </tr>
             </thead>
             <tbody id="import-rows">
               <tr>
-                <td colspan="7" class="empty">請選擇分店與日期後查詢</td>
+                <td colspan="9" class="empty">請選擇分店與交易日後查詢</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel hidden" id="import-detail-panel">
+          <p class="hint" id="import-detail-summary"></p>
+          <table>
+            <thead>
+              <tr>
+                <th>POS 訂單ID</th>
+                <th>客戶</th>
+                <th>電話</th>
+                <th>品項</th>
+                <th>總金額</th>
+              </tr>
+            </thead>
+            <tbody id="import-detail-rows">
+              <tr>
+                <td colspan="5" class="empty">尚無訂單細項</td>
               </tr>
             </tbody>
           </table>

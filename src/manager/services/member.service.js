@@ -92,13 +92,33 @@ export function buildMemberFilter(q, line, vip) {
   return { $and: parts };
 }
 
-export async function listMembers(q, line, vip) {
+const MEMBER_PAGE_SIZE = 20;
+
+function memberPageNumber(page) {
+  const n = Number.parseInt(page, 10);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return n;
+}
+
+export async function listMembers(q, line, vip, page) {
+  const filter = buildMemberFilter(q, line, vip);
+  const total = await User.countDocuments(filter);
+  const pageCount = Math.max(1, Math.ceil(total / MEMBER_PAGE_SIZE));
+  const current = Math.min(memberPageNumber(page), pageCount);
+
   const users = await populateUser(
-    User.find(buildMemberFilter(q, line, vip)).sort({ lastUsedAt: -1, createdAt: -1 }),
+    User.find(filter)
+      .sort({ lastUsedAt: -1, createdAt: -1 })
+      .skip((current - 1) * MEMBER_PAGE_SIZE)
+      .limit(MEMBER_PAGE_SIZE),
   );
 
   return {
     users: users.map((user) => user.toSafeJSON()),
+    total,
+    page: current,
+    pageSize: MEMBER_PAGE_SIZE,
+    pageCount,
   };
 }
 

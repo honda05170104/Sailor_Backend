@@ -23,6 +23,7 @@ router.get("/dashboard", managerAuth, dashboardController.get);
 
 router.get("/branches", managerAuth, branchController.list);
 router.get("/imported-orders", managerAuth, importedOrderController.list);
+router.get("/imported-orders/:id", managerAuth, importedOrderController.get);
 router.get("/users", managerAuth, memberController.list);
 router.get("/users/:id", managerAuth, memberController.get);
 router.post("/users/:id", managerAuth, memberController.update);

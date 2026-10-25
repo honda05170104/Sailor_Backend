@@ -21,6 +21,25 @@
   const importError = document.getElementById("import-error");
   const importResult = document.getElementById("import-result");
   let cachedUsers = [];
+  let memberPage = 1;
+
+  function renderPager(data) {
+    const pager = document.getElementById("member-pager");
+    const total = Number(data.total) || 0;
+    const page = Number(data.page) || 1;
+    const pageCount = Number(data.pageCount) || 1;
+
+    if (!total) {
+      pager.classList.add("hidden");
+      return;
+    }
+
+    pager.classList.remove("hidden");
+    document.getElementById("member-page-label").textContent =
+      `第 ${page} / ${pageCount} 頁，共 ${total} 筆`;
+    document.getElementById("member-prev").disabled = page <= 1;
+    document.getElementById("member-next").disabled = page >= pageCount;
+  }
 
   function renderMembers(users) {
     const rows = document.getElementById("member-rows");
@@ -57,7 +76,8 @@
       .join("");
   }
 
-  async function loadMembers() {
+  async function loadMembers(page = memberPage) {
+    memberPage = page;
     const q = document.getElementById("member-search").value.trim();
     const line = document.getElementById("member-line-filter").value;
     const vip = document.getElementById("member-vip-filter").value;
@@ -65,12 +85,19 @@
     if (q) params.set("q", q);
     if (line) params.set("line", line);
     if (vip) params.set("vip", vip);
+    if (memberPage > 1) params.set("page", String(memberPage));
     const query = params.toString();
     const data = await api(`/users${query ? `?${query}` : ""}`);
+    memberPage = data.page || 1;
     renderMembers(data.users || []);
+    renderPager(data);
   }
 
-  window.loadMembers = loadMembers;
+  function searchMembers() {
+    return loadMembers(1);
+  }
+
+  window.loadMembers = searchMembers;
 
   function fillImportBranchSelect(branches) {
     const select = importForm.branchId;
@@ -98,10 +125,15 @@
     if (current) select.value = current;
   }
 
+  function todayTaipei() {
+    return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+  }
+
   function openImportModal() {
     importError.textContent = "";
     importResult.textContent = "";
     importForm.reset();
+    importForm.orderDate.value = todayTaipei();
     importModal.classList.remove("hidden");
 
     api("/branches")
@@ -124,15 +156,23 @@
   }
 
   document.getElementById("member-search-btn").addEventListener("click", () => {
-    loadMembers();
+    searchMembers();
   });
 
   document.getElementById("member-line-filter").addEventListener("change", () => {
-    loadMembers();
+    searchMembers();
   });
 
   document.getElementById("member-vip-filter").addEventListener("change", () => {
-    loadMembers();
+    searchMembers();
+  });
+
+  document.getElementById("member-prev").addEventListener("click", () => {
+    if (memberPage > 1) loadMembers(memberPage - 1);
+  });
+
+  document.getElementById("member-next").addEventListener("click", () => {
+    loadMembers(memberPage + 1);
   });
 
   document.getElementById("message-open-btn").addEventListener("click", () => {
@@ -142,7 +182,7 @@
   document.getElementById("member-search").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      loadMembers();
+      searchMembers();
     }
   });
 
@@ -150,7 +190,7 @@
   document.getElementById("member-search").addEventListener("input", () => {
     clearTimeout(memberSearchTimer);
     memberSearchTimer = setTimeout(() => {
-      loadMembers();
+      searchMembers();
     }, 300);
   });
 
@@ -171,8 +211,13 @@
 
     const file = importForm.file.files[0];
     const branchId = importForm.branchId.value;
+    const orderDate = importForm.orderDate.value;
     if (!branchId) {
       importError.textContent = "請選擇分店";
+      return;
+    }
+    if (!orderDate) {
+      importError.textContent = "請選擇交易日期";
       return;
     }
     if (!file) {
@@ -183,6 +228,7 @@
     try {
       const body = new FormData();
       body.append("branchId", branchId);
+      body.append("orderDate", orderDate);
       body.append("file", file);
       await api("/transactions/import", {
         method: "POST",
