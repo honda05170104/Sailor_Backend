@@ -122,7 +122,7 @@ function showDetail() {
 function renderBatches(batches) {
   showList();
   if (!batches.length) {
-    rows.innerHTML = '<tr><td colspan="9" class="empty">這天沒有匯入紀錄</td></tr>';
+    rows.innerHTML = '<tr><td colspan="8" class="empty">這天沒有匯入紀錄</td></tr>';
     summary.textContent = "這天沒有匯入紀錄";
     return;
   }
@@ -133,7 +133,6 @@ function renderBatches(batches) {
       (batch) => `<tr class="clickable" data-id="${escapeHtml(batch.id)}">
         <td>${escapeHtml(batch.orderDate || "—")}</td>
         <td>${escapeHtml(storeLabel(batch.branch))}</td>
-        <td>${escapeHtml(batch.fileName || "—")}</td>
         <td>${escapeHtml(batch.totalOrders ?? 0)}</td>
         <td>${escapeHtml(batch.imported ?? 0)}</td>
         <td>${escapeHtml(batch.skippedNoMobile ?? 0)}</td>
@@ -149,7 +148,6 @@ function renderDetail(batch, orders) {
   showDetail();
   title.textContent = `${storeLabel(batch.branch)}｜${batch.orderDate || "—"}`;
   detailSummary.textContent = [
-    batch.fileName || "無檔名",
     `總訂單 ${batch.totalOrders ?? 0}`,
     `成功轉交易 ${batch.imported ?? 0}`,
     `沒電話 ${batch.skippedNoMobile ?? 0}`,
@@ -225,13 +223,13 @@ async function init() {
     fillBranchSelect(branches);
     await loadPage();
   } catch (error) {
-    rows.innerHTML = `<tr><td colspan="9" class="empty">${escapeHtml(error.message)}</td></tr>`;
+    rows.innerHTML = `<tr><td colspan="8" class="empty">${escapeHtml(error.message)}</td></tr>`;
     summary.textContent = error.message;
   }
 
   document.getElementById("import-search-btn").addEventListener("click", () => {
     closeDetail(true).catch((error) => {
-      rows.innerHTML = `<tr><td colspan="9" class="empty">${escapeHtml(error.message)}</td></tr>`;
+      rows.innerHTML = `<tr><td colspan="8" class="empty">${escapeHtml(error.message)}</td></tr>`;
       summary.textContent = error.message;
     });
   });
@@ -256,7 +254,7 @@ async function init() {
     const row = event.target.closest("tr[data-id]");
     if (!row?.dataset.id) return;
     openDetail(row.dataset.id).catch((error) => {
-      rows.innerHTML = `<tr><td colspan="9" class="empty">${escapeHtml(error.message)}</td></tr>`;
+      rows.innerHTML = `<tr><td colspan="8" class="empty">${escapeHtml(error.message)}</td></tr>`;
       summary.textContent = error.message;
     });
   });

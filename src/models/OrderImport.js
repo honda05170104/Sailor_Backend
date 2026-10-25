@@ -9,11 +9,6 @@ const orderImportSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    fileName: {
-      type: String,
-      trim: true,
-      default: '',
-    },
     /** Staff-selected POS business day (Asia/Taipei YYYY-MM-DD). */
     orderDate: {
       type: String,
@@ -36,7 +31,6 @@ orderImportSchema.methods.toSafeJSON = function toSafeJSON() {
   return {
     id: this._id,
     branch: store,
-    fileName: this.fileName || '',
     orderDate: this.orderDate || '',
     totalOrders: this.totalOrders || 0,
     imported: this.imported || 0,

@@ -217,7 +217,6 @@ export async function importOrderExport({
 
   const batch = await OrderImport.create({
     branch: branch._id,
-    fileName: String(file?.originalname || '').trim(),
     orderDate,
     totalOrders: orders.length,
   });
