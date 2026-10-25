@@ -1,4 +1,4 @@
-const { api, escapeHtml, requireAuth, formatDate } = window.Manager;
+const { api, escapeHtml, requireAuth, formatDate, bindModalDismiss } = window.Manager;
 
 const branchSelect = document.getElementById("import-branch");
 const dateInput = document.getElementById("import-date");
@@ -11,6 +11,10 @@ const listPanel = document.getElementById("import-list-panel");
 const detailPanel = document.getElementById("import-detail-panel");
 const detailSummary = document.getElementById("import-detail-summary");
 const detailRows = document.getElementById("import-detail-rows");
+const importForm = document.getElementById("import-form");
+const importModal = document.getElementById("import-modal");
+const importError = document.getElementById("import-error");
+let branches = [];
 
 function todayTaipei() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
@@ -55,15 +59,45 @@ function itemsHtml(items) {
     .join("")}</ul>`;
 }
 
-function fillBranchSelect(branches) {
+function fillBranchSelect(list) {
+  const current = branchSelect.value;
   branchSelect.innerHTML =
     '<option value="">全部分店</option>' +
-    branches
+    list
       .map(
         (branch) =>
           `<option value="${escapeHtml(branch.id)}">${escapeHtml(storeLabel(branch))}</option>`
       )
       .join("");
+  if (current) branchSelect.value = current;
+}
+
+function fillImportBranchSelect(list) {
+  const select = importForm.branchId;
+  const current = select.value;
+  select.innerHTML =
+    '<option value="">請選擇分店</option>' +
+    list
+      .map(
+        (branch) =>
+          `<option value="${escapeHtml(branch.id)}">${escapeHtml(branch.name)}</option>`
+      )
+      .join("");
+  if (current) select.value = current;
+}
+
+function openImportModal() {
+  importError.textContent = "";
+  importForm.reset();
+  fillImportBranchSelect(branches);
+  importForm.orderDate.value = dateInput.value || todayTaipei();
+  if (branchSelect.value) importForm.branchId.value = branchSelect.value;
+  importModal.classList.remove("hidden");
+  if (!branches.length) importError.textContent = "尚無分店，請先到分店頁新增";
+}
+
+function closeImportModal() {
+  importModal.classList.add("hidden");
 }
 
 function selectedImportId() {
@@ -187,7 +221,8 @@ async function init() {
 
   try {
     const data = await api("/branches");
-    fillBranchSelect(data.branches || []);
+    branches = data.branches || [];
+    fillBranchSelect(branches);
     await loadPage();
   } catch (error) {
     rows.innerHTML = `<tr><td colspan="9" class="empty">${escapeHtml(error.message)}</td></tr>`;
@@ -233,6 +268,57 @@ async function init() {
 
   window.addEventListener("popstate", () => {
     loadPage().catch(() => {});
+  });
+
+  document.getElementById("import-open-btn").addEventListener("click", () => {
+    openImportModal();
+  });
+  document.getElementById("import-cancel-btn").addEventListener("click", () => {
+    closeImportModal();
+  });
+  bindModalDismiss(importModal, closeImportModal);
+
+  importForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    importError.textContent = "";
+
+    const file = importForm.file.files[0];
+    const branchId = importForm.branchId.value;
+    const orderDate = importForm.orderDate.value;
+    if (!branchId) {
+      importError.textContent = "請選擇分店";
+      return;
+    }
+    if (!orderDate) {
+      importError.textContent = "請選擇交易日期";
+      return;
+    }
+    if (!file) {
+      importError.textContent = "請選擇檔案";
+      return;
+    }
+
+    try {
+      const body = new FormData();
+      body.append("branchId", branchId);
+      body.append("orderDate", orderDate);
+      body.append("file", file);
+      await api("/transactions/import", {
+        method: "POST",
+        toast: "匯入完成",
+        body,
+      });
+      closeImportModal();
+      dateInput.value = orderDate;
+      branchSelect.value = branchId;
+      if (selectedImportId()) {
+        await closeDetail(true);
+      } else {
+        await loadBatches();
+      }
+    } catch (error) {
+      importError.textContent = error.message;
+    }
   });
 }
 
