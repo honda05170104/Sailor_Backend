@@ -38,6 +38,14 @@ function storeLabel(store) {
   return dash >= 0 ? name.slice(dash + 1) : name;
 }
 
+function formatOrderNoTime(orderNo) {
+  const match = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/.exec(
+    String(orderNo || "").trim()
+  );
+  if (!match) return orderNo || "—";
+  return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}:${match[6]}`;
+}
+
 function itemSubtotal(item) {
   const subtotal = Number(item.subtotal) || 0;
   if (subtotal) return subtotal;
@@ -148,22 +156,26 @@ function renderDetail(batch, orders) {
   showDetail();
   title.textContent = `${storeLabel(batch.branch)}｜${batch.orderDate || "—"}`;
   detailSummary.textContent = [
+    `匯入時間 ${formatDate(batch.importedAt || batch.createdAt)}`,
     `總訂單 ${batch.totalOrders ?? 0}`,
     `成功轉交易 ${batch.imported ?? 0}`,
     `沒電話 ${batch.skippedNoMobile ?? 0}`,
     `重複 ${batch.skippedDuplicate ?? 0}`,
     `作廢 ${batch.skippedVoided ?? 0}`,
-    `匯入 ${formatDate(batch.importedAt || batch.createdAt)}`,
   ].join("｜");
 
   if (!orders.length) {
-    detailRows.innerHTML = '<tr><td colspan="5" class="empty">這批沒有訂單細項</td></tr>';
+    detailRows.innerHTML = '<tr><td colspan="6" class="empty">這批沒有訂單細項</td></tr>';
     return;
   }
 
-  detailRows.innerHTML = orders
+  const ordered = [...orders].sort((a, b) =>
+    String(b.orderNo || "").localeCompare(String(a.orderNo || ""))
+  );
+  detailRows.innerHTML = ordered
     .map(
       (order) => `<tr>
+        <td>${escapeHtml(formatOrderNoTime(order.orderNo))}</td>
         <td>${escapeHtml(order.externalOrderId || "—")}</td>
         <td>${escapeHtml(order.customerName || "—")}</td>
         <td>${escapeHtml(order.customerMobile || "—")}</td>

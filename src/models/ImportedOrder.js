@@ -54,6 +54,7 @@ importedOrderSchema.methods.toSafeJSON = function toSafeJSON() {
     import: this.import || null,
     branch: store,
     externalOrderId: this.externalOrderId || '',
+    orderNo: cell(first, '訂單編號', 'orderNo'),
     customerName: customer.name,
     customerMobile: customer.mobile,
     totalAmount: toNumber(cell(first, '總金額', 'totalAmount')),
