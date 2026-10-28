@@ -262,9 +262,70 @@ export async function redeemPosJoinGift(user, { usedAt = new Date() } = {}) {
   return { action, coupon: issued };
 }
 
-/** One welcome-coupon redemption per member who already has the POS line. */
-export async function backfillPosJoinGifts() {
-  const txns = await Transaction.find({ 'items.name': POS_JOIN_GIFT_ITEM })
+/** POS line that means the legacy-member rebate was already used in store. */
+export const POS_LEGACY_REBATE_ITEM = '舊會員回饋金';
+const LEGACY_REBATE_COUPON_NAME = '舊會員回饋';
+
+export function orderHasPosLegacyRebate(order) {
+  return (order?.items || []).some(
+    (item) => String(item?.name || '').trim() === POS_LEGACY_REBATE_ITEM
+  );
+}
+
+/**
+ * Transaction contains 舊會員回饋金: record the 100-yuan rebate coupon as already used.
+ * Once per member. An existing unused rebate coupon is redeemed instead of issuing another.
+ */
+export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) {
+  if (!user?._id) return null;
+
+  const coupon = await Coupon.findOne({
+    name: LEGACY_REBATE_COUPON_NAME,
+    enabled: { $ne: false },
+  });
+  if (!coupon) return null;
+
+  const existing = await UserCoupon.find({
+    user: user._id,
+    coupon: coupon._id,
+  }).sort({ issuedAt: 1, createdAt: 1 });
+
+  const used = existing.find((item) => item.status === 'used');
+  if (used) return { action: 'already', coupon: used };
+
+  const open = existing.find((item) => item.status !== 'used');
+  if (open) {
+    open.status = 'used';
+    open.usedAt = usedAt;
+    await open.save();
+    return { action: 'redeemed', coupon: open };
+  }
+
+  const issued = await UserCoupon.create({
+    user: user._id,
+    ...snapshotCoupon(coupon),
+    status: 'used',
+    source: 'manual',
+    issuedAt: usedAt,
+    usedAt,
+    expiresAt: resolveCouponExpiresAt(coupon, usedAt),
+  });
+  return { action: 'issued', coupon: issued };
+}
+
+/** Apply in-store coupon lines on one imported order. */
+export async function redeemPosOrderGifts(user, order, usedAt = new Date()) {
+  if (!user?._id || !order) return;
+  if (orderHasPosJoinGift(order)) {
+    await redeemPosJoinGift(user, { usedAt });
+  }
+  if (orderHasPosLegacyRebate(order)) {
+    await redeemPosLegacyRebate(user, { usedAt });
+  }
+}
+
+async function backfillPosItem(itemName, redeem) {
+  const txns = await Transaction.find({ 'items.name': itemName })
     .select('user createdAt')
     .sort({ createdAt: 1, _id: 1 });
 
@@ -282,7 +343,7 @@ export async function backfillPosJoinGifts() {
       results.push({ userId: id, action: 'missing-user' });
       continue;
     }
-    const outcome = await redeemPosJoinGift(user, { usedAt });
+    const outcome = await redeem(user, { usedAt });
     results.push({
       userId: id,
       mobile: user.mobile || '',
@@ -291,6 +352,16 @@ export async function backfillPosJoinGifts() {
     });
   }
   return results;
+}
+
+/** One welcome-coupon redemption per member who already has the POS line. */
+export async function backfillPosJoinGifts() {
+  return backfillPosItem(POS_JOIN_GIFT_ITEM, redeemPosJoinGift);
+}
+
+/** One legacy-rebate redemption per member who already has the POS line. */
+export async function backfillPosLegacyRebates() {
+  return backfillPosItem(POS_LEGACY_REBATE_ITEM, redeemPosLegacyRebate);
 }
 
 /**

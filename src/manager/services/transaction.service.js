@@ -13,10 +13,7 @@ import {
   toNumber,
 } from '../../services/orderImport.js';
 import { defaultVip, getLifetimeSpend } from '../../services/vip.js';
-import {
-  orderHasPosJoinGift,
-  redeemPosJoinGift,
-} from './promotion.service.js';
+import { redeemPosOrderGifts } from './promotion.service.js';
 import { requireStore } from '../../data/stores.js';
 import {
   normalizeOrderStatus,
@@ -262,13 +259,13 @@ export async function importOrderExport({
             existingTxn.importedOrder = imported._id;
             await existingTxn.save();
           }
-          if (orderHasPosJoinGift(existingTxn)) {
-            const owner = await User.findById(existingTxn.user);
-            if (owner) {
-              await redeemPosJoinGift(owner, {
-                usedAt: existingTxn.createdAt || new Date(),
-              });
-            }
+          const owner = await User.findById(existingTxn.user);
+          if (owner) {
+            await redeemPosOrderGifts(
+              owner,
+              existingTxn,
+              existingTxn.createdAt || new Date()
+            );
           }
           summary.skippedDuplicate += 1;
           continue;
@@ -292,9 +289,7 @@ export async function importOrderExport({
           importedOrder: imported._id,
           importedAt: new Date(),
         });
-        if (orderHasPosJoinGift(txn)) {
-          await redeemPosJoinGift(user, { usedAt: txn.createdAt || new Date() });
-        }
+        await redeemPosOrderGifts(user, txn, txn.createdAt || new Date());
         spendUserIds.add(String(user._id));
         summary.imported += 1;
       } catch (error) {
@@ -311,12 +306,14 @@ export async function importOrderExport({
             },
             { $set: { importedOrder: imported._id } }
           );
-          if (existingTxn && orderHasPosJoinGift(existingTxn)) {
+          if (existingTxn) {
             const owner = await User.findById(existingTxn.user);
             if (owner) {
-              await redeemPosJoinGift(owner, {
-                usedAt: existingTxn.createdAt || new Date(),
-              });
+              await redeemPosOrderGifts(
+                owner,
+                existingTxn,
+                existingTxn.createdAt || new Date()
+              );
             }
           }
           summary.skippedDuplicate += 1;
