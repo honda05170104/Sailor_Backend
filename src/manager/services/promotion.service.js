@@ -275,7 +275,7 @@ export function orderHasPosLegacyRebate(order) {
 const GOLD_MEMBERSHIP_MS = 365 * 24 * 60 * 60 * 1000;
 
 /** Raise a legacy-rebate member to gold. Black (and gold) stay as they are. */
-async function promoteLegacyMemberToGold(user) {
+export async function promoteLegacyMemberToGold(user) {
   const gold = requireVip(getVipBySlug('gold')?.id);
   if (!gold) return 'skipped';
 
@@ -394,6 +394,30 @@ export async function backfillPosJoinGifts() {
 /** One legacy-rebate redemption per member who already has the POS line. */
 export async function backfillPosLegacyRebates() {
   return backfillPosItem(POS_LEGACY_REBATE_ITEM, redeemPosLegacyRebate);
+}
+
+/** Anyone holding 舊會員回饋 is at least gold. Does not change coupon status. */
+export async function promoteLegacyRebateHolders() {
+  const coupon = await Coupon.findOne({ name: LEGACY_REBATE_COUPON_NAME });
+  if (!coupon) return [];
+
+  const userIds = await UserCoupon.distinct('user', { coupon: coupon._id });
+  const results = [];
+  for (const id of userIds) {
+    const user = await User.findById(id);
+    if (!user) {
+      results.push({ userId: String(id), vip: 'missing-user' });
+      continue;
+    }
+    const vip = await promoteLegacyMemberToGold(user);
+    results.push({
+      userId: String(user._id),
+      mobile: user.mobile || '',
+      displayName: user.displayName || '',
+      vip,
+    });
+  }
+  return results;
 }
 
 /**
