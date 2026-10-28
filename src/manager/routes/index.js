@@ -37,12 +37,6 @@ router.post(
   transactionController.importOrders,
 );
 router.get("/vips", managerAuth, vipController.list);
-router.post("/vips/run-daily-sync", managerAuth, vipController.runDailySync);
-router.post(
-  "/vips/run-daily-cashback",
-  managerAuth,
-  vipController.runDailyCashback,
-);
 router.get("/tags", managerAuth, tagController.list);
 router.post("/tags", managerAuth, tagController.create);
 router.post("/tags/:id", managerAuth, tagController.update);

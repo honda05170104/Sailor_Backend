@@ -12,7 +12,7 @@ import {
   parseImportFile,
   toNumber,
 } from '../../services/orderImport.js';
-import { defaultVip } from '../../services/vip.js';
+import { defaultVip, getLifetimeSpend } from '../../services/vip.js';
 import { requireStore } from '../../data/stores.js';
 import {
   normalizeOrderStatus,
@@ -91,6 +91,14 @@ function groupOrders(rows) {
   }
 
   return [...orders.values()];
+}
+
+/** Rewrite lifetime spend from transactions. Does not change VIP or coupons. */
+async function refreshImportedSpend(userIds) {
+  for (const id of userIds) {
+    const totalSpend = await getLifetimeSpend(id);
+    await User.updateOne({ _id: id }, { $set: { totalSpend } });
+  }
 }
 
 function addToMobileIndex(index, user) {
@@ -220,6 +228,7 @@ export async function importOrderExport({
     orderDate,
     totalOrders: orders.length,
   });
+  const spendUserIds = new Set();
 
   try {
     for (const order of orders) {
@@ -262,8 +271,7 @@ export async function importOrderExport({
       delete transactionFields.rawOrderStatus;
 
       try {
-        // Raw order is already stored. VIP tier / upgrade / cashback
-        // are calculated by the daily agenda job (vip.dailySync).
+        // VIP tier, upgrade coupons, and points stay on the daily jobs.
         await Transaction.create({
           ...transactionFields,
           txnNo: generateTxnNo(),
@@ -272,6 +280,7 @@ export async function importOrderExport({
           importedOrder: imported._id,
           importedAt: new Date(),
         });
+        spendUserIds.add(String(user._id));
         summary.imported += 1;
       } catch (error) {
         if (error?.code === 11000) {
@@ -308,5 +317,6 @@ export async function importOrderExport({
         },
       }
     );
+    await refreshImportedSpend(spendUserIds);
   }
 }

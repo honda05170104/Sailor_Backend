@@ -7,6 +7,9 @@ const JOB_DAILY_PROMOTIONS = 'promotions.daily';
 const JOB_DAILY_VIP_SYNC = 'vip.dailySync';
 const JOB_DAILY_CASHBACK = 'vip.dailyCashback';
 
+/** 台北時間每天 03:00：先升降級與升等券，再發點數。 */
+const DAILY_MEMBER_SYNC_CRON = '0 3 * * *';
+
 let agenda;
 
 export async function startAgenda() {
@@ -36,13 +39,10 @@ export async function startAgenda() {
   });
 
   agenda.define(JOB_DAILY_VIP_SYNC, async () => {
-    const result = await runDailyVipSync();
-    console.log(`[agenda] ${JOB_DAILY_VIP_SYNC}`, JSON.stringify(result));
-  });
-
-  agenda.define(JOB_DAILY_CASHBACK, async () => {
-    const result = await runDailyCashback();
-    console.log(`[agenda] ${JOB_DAILY_CASHBACK}`, JSON.stringify(result));
+    const vip = await runDailyVipSync();
+    console.log(`[agenda] ${JOB_DAILY_VIP_SYNC}`, JSON.stringify(vip));
+    const cashback = await runDailyCashback();
+    console.log(`[agenda] ${JOB_DAILY_CASHBACK}`, JSON.stringify(cashback));
   });
 
   agenda.on('ready', () => {
@@ -60,21 +60,10 @@ export async function startAgenda() {
 
   await agenda.start();
 
-  // Asia/Taipei 每天 12:00：VIP 升降級重算（含升等禮）。
+  await agenda.cancel({ name: JOB_DAILY_CASHBACK });
   await agenda.every(
-    '0 12 * * *',
+    DAILY_MEMBER_SYNC_CRON,
     JOB_DAILY_VIP_SYNC,
-    {},
-    {
-      timezone: 'Asia/Taipei',
-      skipImmediate: true,
-    }
-  );
-
-  // Asia/Taipei 每天 12:05：點數回饋（依交易日 VIP，每人合併成一筆）。
-  await agenda.every(
-    '5 12 * * *',
-    JOB_DAILY_CASHBACK,
     {},
     {
       timezone: 'Asia/Taipei',
