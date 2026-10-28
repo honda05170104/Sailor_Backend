@@ -8,7 +8,7 @@ import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import { snapshotCoupon, resolveCouponExpiresAt } from '../../services/coupons.js';
-import { getVipById, getVipBySlug } from '../../data/vips.js';
+import { getVipById, getVipBySlug, requireVip } from '../../data/vips.js';
 
 /** Taiwan local date parts for birthday matching. */
 function taiwanNowParts(date = new Date()) {
@@ -272,18 +272,49 @@ export function orderHasPosLegacyRebate(order) {
   );
 }
 
+const GOLD_MEMBERSHIP_MS = 365 * 24 * 60 * 60 * 1000;
+
+/** Raise a legacy-rebate member to gold. Black (and gold) stay as they are. */
+async function promoteLegacyMemberToGold(user) {
+  const gold = requireVip(getVipBySlug('gold')?.id);
+  if (!gold) return 'skipped';
+
+  const current = getVipById(user.vip);
+  if ((current?.rank || 0) >= (gold.rank || 2)) return 'already';
+
+  const vipExpiresAt = new Date(Date.now() + GOLD_MEMBERSHIP_MS);
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        vip: gold._id,
+        vipExpiresAt,
+        vipExpiresForever: false,
+        vipExpiresManual: false,
+      },
+    }
+  );
+  user.vip = gold._id;
+  user.vipExpiresAt = vipExpiresAt;
+  user.vipExpiresForever = false;
+  user.vipExpiresManual = false;
+  return 'upgraded';
+}
+
 /**
- * Transaction contains 舊會員回饋金: record the 100-yuan rebate coupon as already used.
+ * Transaction contains 舊會員回饋金: become gold, and record the 100-yuan rebate as used.
  * Once per member. An existing unused rebate coupon is redeemed instead of issuing another.
  */
 export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) {
   if (!user?._id) return null;
 
+  const vip = await promoteLegacyMemberToGold(user);
+
   const coupon = await Coupon.findOne({
     name: LEGACY_REBATE_COUPON_NAME,
     enabled: { $ne: false },
   });
-  if (!coupon) return null;
+  if (!coupon) return { action: 'skipped', vip };
 
   const existing = await UserCoupon.find({
     user: user._id,
@@ -291,14 +322,14 @@ export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) 
   }).sort({ issuedAt: 1, createdAt: 1 });
 
   const used = existing.find((item) => item.status === 'used');
-  if (used) return { action: 'already', coupon: used };
+  if (used) return { action: 'already', vip, coupon: used };
 
   const open = existing.find((item) => item.status !== 'used');
   if (open) {
     open.status = 'used';
     open.usedAt = usedAt;
     await open.save();
-    return { action: 'redeemed', coupon: open };
+    return { action: 'redeemed', vip, coupon: open };
   }
 
   const issued = await UserCoupon.create({
@@ -310,7 +341,7 @@ export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) 
     usedAt,
     expiresAt: resolveCouponExpiresAt(coupon, usedAt),
   });
-  return { action: 'issued', coupon: issued };
+  return { action: 'issued', vip, coupon: issued };
 }
 
 /** Apply in-store coupon lines on one imported order. */
@@ -349,6 +380,7 @@ async function backfillPosItem(itemName, redeem) {
       mobile: user.mobile || '',
       displayName: user.displayName || '',
       action: outcome?.action || 'skipped',
+      vip: outcome?.vip || '',
     });
   }
   return results;
