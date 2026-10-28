@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Coupon from '../../models/Coupon.js';
 import Promotion, { PROMOTION_TYPES } from '../../models/Promotion.js';
 import PromotionClaim from '../../models/PromotionClaim.js';
+import Transaction from '../../models/Transaction.js';
 import UserCoupon from '../../models/UserCoupon.js';
 import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
@@ -168,6 +169,128 @@ export async function issueJoinGift(user) {
   const promotion = await findEnabledByType('join');
   if (!promotion) return null;
   return tryClaimAndIssue(user, promotion, `join:${promotion.key}`);
+}
+
+/** POS line that means the welcome coupon was already used in store. */
+export const POS_JOIN_GIFT_ITEM = '新客入會禮';
+
+export function orderHasPosJoinGift(order) {
+  return (order?.items || []).some(
+    (item) => String(item?.name || '').trim() === POS_JOIN_GIFT_ITEM
+  );
+}
+
+async function findJoinPromotion() {
+  return Promotion.findOne({ key: 'join', type: 'join' }).populate('coupon');
+}
+
+/**
+ * Transaction contains 新客入會禮: record the welcome coupon as already used.
+ * Once per member. An existing unused welcome coupon is redeemed instead of issuing another.
+ */
+export async function redeemPosJoinGift(user, { usedAt = new Date() } = {}) {
+  if (!user?._id) return null;
+
+  const promotion = await findJoinPromotion();
+  if (!promotion?._id || !promotion.coupon) return null;
+
+  const coupon =
+    typeof promotion.coupon.toSafeJSON === 'function'
+      ? promotion.coupon
+      : await Coupon.findById(promotion.coupon);
+  if (!coupon || coupon.enabled === false) return null;
+
+  const claimKey = `join:${promotion.key}`;
+  let claim = await PromotionClaim.findOne({ user: user._id, claimKey });
+  if (!claim) {
+    try {
+      claim = await PromotionClaim.create({
+        user: user._id,
+        promotion: promotion._id,
+        claimKey,
+      });
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+      claim = await PromotionClaim.findOne({ user: user._id, claimKey });
+    }
+  }
+  if (!claim) return null;
+
+  if (claim.userCoupon) {
+    const issued = await UserCoupon.findById(claim.userCoupon);
+    if (!issued) return { action: 'already', coupon: null };
+    if (issued.status !== 'used') {
+      issued.status = 'used';
+      issued.usedAt = usedAt;
+      await issued.save();
+      return { action: 'redeemed', coupon: issued };
+    }
+    return { action: 'already', coupon: issued };
+  }
+
+  let issued = await UserCoupon.findOne({
+    user: user._id,
+    coupon: coupon._id,
+  }).sort({ issuedAt: 1, createdAt: 1 });
+
+  let action = 'already';
+  if (!issued) {
+    issued = await UserCoupon.create({
+      user: user._id,
+      ...snapshotCoupon(coupon),
+      status: 'used',
+      source: 'promotion',
+      promotion: promotion._id,
+      promotionName: promotion.name || '',
+      issuedAt: usedAt,
+      usedAt,
+      expiresAt: resolveCouponExpiresAt(coupon, usedAt),
+    });
+    action = 'issued';
+  } else if (issued.status !== 'used') {
+    issued.status = 'used';
+    issued.usedAt = usedAt;
+    await issued.save();
+    action = 'redeemed';
+  }
+
+  await PromotionClaim.updateOne(
+    { _id: claim._id },
+    { $set: { userCoupon: issued._id } }
+  );
+
+  return { action, coupon: issued };
+}
+
+/** One welcome-coupon redemption per member who already has the POS line. */
+export async function backfillPosJoinGifts() {
+  const txns = await Transaction.find({ 'items.name': POS_JOIN_GIFT_ITEM })
+    .select('user createdAt')
+    .sort({ createdAt: 1, _id: 1 });
+
+  const firstByUser = new Map();
+  for (const txn of txns) {
+    const id = String(txn.user || '');
+    if (!id || firstByUser.has(id)) continue;
+    firstByUser.set(id, txn.createdAt || new Date());
+  }
+
+  const results = [];
+  for (const [id, usedAt] of firstByUser) {
+    const user = await User.findById(id);
+    if (!user) {
+      results.push({ userId: id, action: 'missing-user' });
+      continue;
+    }
+    const outcome = await redeemPosJoinGift(user, { usedAt });
+    results.push({
+      userId: id,
+      mobile: user.mobile || '',
+      displayName: user.displayName || '',
+      action: outcome?.action || 'skipped',
+    });
+  }
+  return results;
 }
 
 /**
