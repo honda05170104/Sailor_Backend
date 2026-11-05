@@ -93,6 +93,9 @@ export function vipSpendLines(vip, lower = null) {
       `會級期間滿 ${formatMoney(lower.retainSpend)} 元、未滿 ${formatMoney(vip.retainSpend)} 元改為${lower.name}`
     );
   }
+  const floor =
+    lower && Number(lower.retainSpend) > 0 ? Number(lower.retainSpend) : Number(vip.retainSpend);
+  lines.push(`會級期間未滿 ${formatMoney(floor)} 元，到期後退回一般會員`);
   return lines;
 }
 
