@@ -1,5 +1,22 @@
 import AppError from '../utils/AppError.js';
 import { ErrorCode } from '../constants/codes.js';
+import { addDays, zonedInstant, zonedParts } from './globalConfig.js';
+
+const COUPON_TIME_ZONE = 'Asia/Taipei';
+
+function addCalendarDays(date, days) {
+  const parts = zonedParts(date, COUPON_TIME_ZONE);
+  const next = addDays(parts, days);
+  return zonedInstant(
+    COUPON_TIME_ZONE,
+    next.year,
+    next.month,
+    next.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  );
+}
 
 export const COUPON_TYPES = ['amount', 'percent'];
 export const COUPON_EXPIRY_MODES = ['fixed', 'relative'];
@@ -86,9 +103,7 @@ export function resolveCouponExpiresAt(coupon, issuedAt = new Date()) {
   if (mode === 'relative') {
     const days = Number(coupon.expireDays);
     if (!Number.isFinite(days) || days < 1) return null;
-    const expires = new Date(issuedAt);
-    expires.setDate(expires.getDate() + Math.floor(days));
-    return expires;
+    return addCalendarDays(new Date(issuedAt), Math.floor(days));
   }
   return coupon.endsAt || null;
 }

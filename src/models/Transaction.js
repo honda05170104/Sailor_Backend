@@ -70,6 +70,8 @@ const transactionSchema = new mongoose.Schema(
     },
     items: { type: [transactionItemSchema], default: [] },
     importedAt: { type: Date, default: Date.now },
+    /** Original sale time. POS orders parse orderNo (YYYYMMDD-HHMMSS, Asia/Taipei). */
+    orderedAt: { type: Date, default: null },
     /** When points cashback was applied; null = pending daily cashback job. */
     cashbackAt: { type: Date, default: null, index: true },
     /** Points granted from this spend order (0 if none / not yet processed). */
@@ -79,6 +81,7 @@ const transactionSchema = new mongoose.Schema(
 );
 
 transactionSchema.index({ branch: 1, externalOrderId: 1 }, { unique: true });
+transactionSchema.index({ user: 1, orderedAt: -1 });
 
 transactionSchema.methods.toSafeJSON = function toSafeJSON() {
   const store = getStoreById(this.branch);
@@ -108,6 +111,7 @@ transactionSchema.methods.toSafeJSON = function toSafeJSON() {
     importedOrder: this.importedOrder || null,
     items: this.items,
     importedAt: this.importedAt,
+    orderedAt: this.orderedAt || null,
     cashbackAt: this.cashbackAt || null,
     cashbackPoints: this.cashbackPoints || 0,
     createdAt: this.createdAt,

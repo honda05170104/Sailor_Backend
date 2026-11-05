@@ -40,6 +40,40 @@ export function orderStatusLabel(value) {
   );
 }
 
+const POS_ORDER_NO_RE = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/;
+
+/**
+ * POS order numbers encode the original sale time as YYYYMMDD-HHMMSS
+ * in Asia/Taipei. Returns null when the number is not that format.
+ */
+export function orderTimeFromOrderNo(orderNo) {
+  const match = String(orderNo || '').trim().match(POS_ORDER_NO_RE);
+  if (!match) return null;
+
+  const [, year, month, day, hour, minute, second] = match;
+  const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}+08:00`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const formatted = date.toLocaleString('sv-SE', {
+    timeZone: 'Asia/Taipei',
+    hourCycle: 'h23',
+  });
+  if (formatted !== `${year}-${month}-${day} ${hour}:${minute}:${second}`) return null;
+  return date;
+}
+
+/** Sale time for a transaction. POS rows use the order number; others use fallback. */
+export function resolveOrderedAt(orderNo, fallback = new Date()) {
+  return orderTimeFromOrderNo(orderNo) || fallback;
+}
+
+/** When the sale happened. Import time is not a business date. */
+export function saleAt(record, fallback = new Date()) {
+  const value = record?.orderedAt || record?.createdAt;
+  const date = value ? new Date(value) : new Date(fallback);
+  return Number.isNaN(date.getTime()) ? new Date(fallback) : date;
+}
+
 /** Sailor's own order number (not the imported POS order no). */
 export function generateTxnNo(now = new Date()) {
   const y = now.getFullYear();

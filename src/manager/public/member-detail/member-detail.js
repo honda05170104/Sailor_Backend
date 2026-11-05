@@ -308,7 +308,7 @@ function renderMemberDetail(user, transactions, coupons, speciesReviews) {
         <td>${escapeHtml(tx.totalAmount ?? 0)}</td>
         <td>${escapeHtml(tx.paymentMethod || "—")}</td>
         <td>${escapeHtml(tx.orderStatusLabel || tx.orderStatus || "—")}</td>
-        <td>${escapeHtml(formatDate(tx.createdAt || tx.importedAt))}</td>
+        <td>${escapeHtml(formatDate(tx.orderedAt || tx.createdAt || tx.importedAt))}</td>
       </tr>`;
     })
     .join("");

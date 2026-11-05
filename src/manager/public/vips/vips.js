@@ -26,10 +26,16 @@
               .join("")}</ul>`
           : `<p class="muted">${escapeHtml(vip.description || "—")}</p>`;
 
+        const retain = Number(vip.retainSpend) || 0;
+        const spendLabel =
+          retain > 0
+            ? `升等 $${formatMoney(vip.minSpend)} · 保留 $${formatMoney(retain)}`
+            : `門檻 $${formatMoney(vip.minSpend)}`;
+
         return `<article class="vip-rule-card">
           <div class="vip-rule-head">
             <h3>${escapeHtml(vip.name)}</h3>
-            <span class="vip-rule-spend">門檻 $${formatMoney(vip.minSpend)}</span>
+            <span class="vip-rule-spend">${spendLabel}</span>
           </div>
           ${benefitHtml}
         </article>`;

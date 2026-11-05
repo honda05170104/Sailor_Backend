@@ -18,6 +18,8 @@ import { requireStore } from '../../data/stores.js';
 import {
   normalizeOrderStatus,
   generateTxnNo,
+  resolveOrderedAt,
+  saleAt,
 } from '../../services/transactions.js';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -136,6 +138,87 @@ async function saveImportedOrder(branchId, order, importId) {
     });
     if (!doc) throw error;
     return { doc, isNew: false };
+  }
+}
+
+const POINT_DISCOUNT_ITEM = '點數折扣';
+
+/** Signed point change from POS「點數折扣」lines. Negative deducts, positive adds. */
+function pointDiscountDelta(items) {
+  let delta = 0;
+  for (const item of items || []) {
+    if (String(item?.name || '').trim() !== POINT_DISCOUNT_ITEM) continue;
+    const subtotal = Number(item.subtotal);
+    if (Number.isFinite(subtotal)) {
+      delta += subtotal;
+      continue;
+    }
+    delta += (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
+  }
+  return delta;
+}
+
+/**
+ * Apply「點數折扣」onto the member's points once for a newly imported order.
+ * A second import of the same order does not call this.
+ */
+async function applyImportedPointDiscount(user, order, branchId, saleTime) {
+  const delta = pointDiscountDelta(order.items);
+  if (!delta) return null;
+
+  const marker = `points-${order.externalOrderId}`;
+  const already = await Transaction.findOne({
+    user: user._id,
+    externalOrderId: marker,
+  });
+  if (already) return null;
+
+  const before = Math.max(0, Number(user.storedCredit) || 0);
+  const next = Math.max(0, before + delta);
+  const applied = next - before;
+  if (!applied) return null;
+
+  user.storedCredit = next;
+  await user.save();
+
+  const signed = applied > 0 ? `+${applied}` : String(applied);
+  const orderRef = order.orderNo || order.externalOrderId || '';
+  const short =
+    applied === delta ? '' : `，點數不足（訂單 ${delta}）`;
+  const now = new Date();
+
+  try {
+    return await Transaction.create({
+      user: user._id,
+      branch: branchId,
+      txnNo: generateTxnNo(now),
+      orderNo: order.orderNo || '',
+      customerName: user.displayName || order.customerName || '',
+      customerMobile: user.mobile || order.customerMobile || '',
+      source: '點數兌換',
+      orderStatus: DEFAULT_TRANSACTION_ORDER_STATUS,
+      staff: order.staff || '',
+      note: `點數 ${signed}（${before} → ${next}）訂單 ${orderRef} 點數折扣${short}`,
+      externalOrderId: marker,
+      items: [
+        {
+          name: applied > 0 ? '點數增加' : '點數扣除',
+          quantity: 1,
+          unitPrice: applied,
+          subtotal: applied,
+        },
+      ],
+      totalAmount: applied,
+      importedAt: now,
+      orderedAt: saleTime,
+      cashbackAt: now,
+      cashbackPoints: 0,
+    });
+  } catch (error) {
+    user.storedCredit = before;
+    await user.save();
+    if (error?.code === 11000) return null;
+    throw error;
   }
 }
 
@@ -261,11 +344,7 @@ export async function importOrderExport({
           }
           const owner = await User.findById(existingTxn.user);
           if (owner) {
-            await redeemPosOrderGifts(
-              owner,
-              existingTxn,
-              existingTxn.createdAt || new Date()
-            );
+            await redeemPosOrderGifts(owner, existingTxn, saleAt(existingTxn));
           }
           summary.skippedDuplicate += 1;
           continue;
@@ -280,16 +359,19 @@ export async function importOrderExport({
       delete transactionFields.rawOrderStatus;
 
       try {
-        // VIP tier, upgrade coupons, and points stay on the daily jobs.
+        // VIP tier and upgrade coupons stay on the daily jobs.
+        const importedAt = new Date();
         const txn = await Transaction.create({
           ...transactionFields,
           txnNo: generateTxnNo(),
           user: user._id,
           branch: branch._id,
           importedOrder: imported._id,
-          importedAt: new Date(),
+          importedAt,
+          orderedAt: resolveOrderedAt(transactionFields.orderNo, importedAt),
         });
-        await redeemPosOrderGifts(user, txn, txn.createdAt || new Date());
+        await applyImportedPointDiscount(user, order, branch._id, saleAt(txn));
+        await redeemPosOrderGifts(user, txn, saleAt(txn));
         spendUserIds.add(String(user._id));
         summary.imported += 1;
       } catch (error) {
@@ -309,11 +391,7 @@ export async function importOrderExport({
           if (existingTxn) {
             const owner = await User.findById(existingTxn.user);
             if (owner) {
-              await redeemPosOrderGifts(
-                owner,
-                existingTxn,
-                existingTxn.createdAt || new Date()
-              );
+              await redeemPosOrderGifts(owner, existingTxn, saleAt(existingTxn));
             }
           }
           summary.skippedDuplicate += 1;

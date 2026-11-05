@@ -8,6 +8,7 @@ import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import { snapshotCoupon, resolveCouponExpiresAt } from '../../services/coupons.js';
+import { saleAt } from '../../services/transactions.js';
 import { getVipById, getVipBySlug, requireVip } from '../../data/vips.js';
 
 /** Taiwan local date parts for birthday matching. */
@@ -275,14 +276,17 @@ export function orderHasPosLegacyRebate(order) {
 const GOLD_MEMBERSHIP_MS = 365 * 24 * 60 * 60 * 1000;
 
 /** Raise a legacy-rebate member to gold. Black (and gold) stay as they are. */
-export async function promoteLegacyMemberToGold(user) {
+export async function promoteLegacyMemberToGold(user, { from = new Date() } = {}) {
   const gold = requireVip(getVipBySlug('gold')?.id);
   if (!gold) return 'skipped';
 
   const current = getVipById(user.vip);
   if ((current?.rank || 0) >= (gold.rank || 2)) return 'already';
 
-  const vipExpiresAt = new Date(Date.now() + GOLD_MEMBERSHIP_MS);
+  const start = new Date(from);
+  const vipExpiresAt = new Date(
+    (Number.isNaN(start.getTime()) ? Date.now() : start.getTime()) + GOLD_MEMBERSHIP_MS
+  );
   await User.updateOne(
     { _id: user._id },
     {
@@ -308,7 +312,7 @@ export async function promoteLegacyMemberToGold(user) {
 export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) {
   if (!user?._id) return null;
 
-  const vip = await promoteLegacyMemberToGold(user);
+  const vip = await promoteLegacyMemberToGold(user, { from: usedAt });
 
   const coupon = await Coupon.findOne({
     name: LEGACY_REBATE_COUPON_NAME,
@@ -357,14 +361,14 @@ export async function redeemPosOrderGifts(user, order, usedAt = new Date()) {
 
 async function backfillPosItem(itemName, redeem) {
   const txns = await Transaction.find({ 'items.name': itemName })
-    .select('user createdAt')
-    .sort({ createdAt: 1, _id: 1 });
+    .select('user orderedAt createdAt')
+    .sort({ orderedAt: 1, createdAt: 1, _id: 1 });
 
   const firstByUser = new Map();
   for (const txn of txns) {
     const id = String(txn.user || '');
     if (!id || firstByUser.has(id)) continue;
-    firstByUser.set(id, txn.createdAt || new Date());
+    firstByUser.set(id, saleAt(txn));
   }
 
   const results = [];

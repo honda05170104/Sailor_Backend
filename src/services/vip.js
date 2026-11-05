@@ -12,12 +12,15 @@ import {
   isBaseVip,
   isGoldDowngradeProtected,
   getGoldProtectExpiresAt,
+  vipRetainedBySpend,
   calcCashbackPoints,
+  cashbackBonusMultiplier,
 } from '../data/vips.js';
 import { issueUpgradeGift } from '../manager/services/promotion.service.js';
 import {
   DEFAULT_TRANSACTION_ORDER_STATUS,
   generateTxnNo,
+  saleAt,
 } from './transactions.js';
 import { defaultStore } from '../data/stores.js';
 
@@ -32,6 +35,7 @@ export {
   isBaseVip,
   isGoldDowngradeProtected,
   getGoldProtectExpiresAt,
+  vipRetainedBySpend,
   calcCashbackPoints,
 };
 
@@ -70,9 +74,11 @@ async function sumSpend(userId, { since = null, until = null, includePositiveAdj
     match.source = { $nin: NON_SPEND_TRANSACTION_SOURCES };
   }
   if (since || until) {
-    match.createdAt = {};
-    if (since) match.createdAt.$gte = since;
-    if (until) match.createdAt.$lte = until;
+    const saleTime = { $ifNull: ['$orderedAt', '$createdAt'] };
+    const range = [];
+    if (since) range.push({ $gte: [saleTime, since] });
+    if (until) range.push({ $lte: [saleTime, until] });
+    match.$expr = range.length === 1 ? range[0] : { $and: range };
   }
 
   const rows = await Transaction.aggregate([
@@ -112,7 +118,6 @@ export async function vipAtDate(userId, at = new Date()) {
 export async function vipProgress(user) {
   const spend = await getYearSpend(user?._id || user?.id);
   const vips = VIPS;
-  const goldProtectExpiresAt = getGoldProtectExpiresAt(user);
   const vipExpiresForever = isBaseVip(getVipById(user?.vip));
   const vipExpiresAt = vipExpiresForever
     ? null
@@ -127,7 +132,7 @@ export async function vipProgress(user) {
       yearSpend: spend,
       vipExpiresAt,
       vipExpiresForever,
-      goldProtectExpiresAt,
+      goldProtectExpiresAt: null,
     };
   }
 
@@ -149,7 +154,7 @@ export async function vipProgress(user) {
       yearSpend: spend,
       vipExpiresAt,
       vipExpiresForever,
-      goldProtectExpiresAt,
+      goldProtectExpiresAt: null,
     };
   }
 
@@ -159,50 +164,99 @@ export async function vipProgress(user) {
     yearSpend: spend,
     vipExpiresAt,
     vipExpiresForever,
-    goldProtectExpiresAt,
+    goldProtectExpiresAt: null,
   };
 }
 
+function addVipYear(date) {
+  return new Date(date.getTime() + VIP_SPEND_WINDOW_MS);
+}
+
+function validDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 /**
- * Resolve membership end date for the final VIP tier after sync.
- * - normal: no expiry
- * - upgraded: +1 year from now
- * - protected floor: gold-protect end
- * - otherwise keep future expiry, or renew +1 year if still qualifies by spend
+ * Membership year has ended. Keep or drop from spend inside that year.
+ * A higher tier earned from the rolling year still upgrades.
+ * If the renewed date is already past, evaluate the next year in this same run.
  */
-export function resolveVipExpiresAt(
-  user,
-  {
-    now = new Date(),
-    finalRank = 0,
-    finalMinSpend = 0,
-    yearSpend = 0,
-    upgraded = false,
-    protectedFromDowngrade = false,
-  } = {}
-) {
-  if (finalRank <= 1) return null;
+async function resolveExpiredMembership(userId, prevVip, earned, now, expiresAt) {
+  let tier = prevVip;
+  let periodEnd = expiresAt;
+  let periodSpend = 0;
+  const prevRank = prevVip?.rank || 0;
 
-  const protectEnd = getGoldProtectExpiresAt(user);
-  if (protectedFromDowngrade && protectEnd) {
-    return protectEnd;
+  for (let step = 0; step < 8; step += 1) {
+    const end = periodEnd || now;
+    const start = new Date(end.getTime() - VIP_SPEND_WINDOW_MS);
+    periodSpend = await sumSpend(userId, { since: start, until: end });
+    const retained = vipRetainedBySpend(tier, periodSpend);
+    const retainedRank = retained?.rank || 0;
+    const earnedRank = earned?.rank || 0;
+
+    if (retainedRank <= 1) {
+      if (earnedRank > 1) {
+        return {
+          vip: earned,
+          expiresAt: addVipYear(now),
+          periodSpend,
+          upgraded: earnedRank > prevRank,
+          downgraded: earnedRank < prevRank,
+        };
+      }
+      return {
+        vip: retained,
+        expiresAt: null,
+        periodSpend,
+        upgraded: false,
+        downgraded: prevRank > 1,
+      };
+    }
+
+    const renewed = addVipYear(end);
+    if (renewed.getTime() > now.getTime()) {
+      if (earnedRank > retainedRank) {
+        return {
+          vip: earned,
+          expiresAt: addVipYear(now),
+          periodSpend,
+          upgraded: earnedRank > prevRank,
+          downgraded: earnedRank < prevRank,
+        };
+      }
+      return {
+        vip: retained,
+        expiresAt: renewed,
+        periodSpend,
+        upgraded: retainedRank > prevRank,
+        downgraded: retainedRank < prevRank,
+      };
+    }
+
+    tier = retained;
+    periodEnd = renewed;
   }
 
-  const oneYearLater = new Date(now.getTime() + VIP_SPEND_WINDOW_MS);
-  if (upgraded) return oneYearLater;
-
-  const current = user?.vipExpiresAt ? new Date(user.vipExpiresAt) : null;
-  if (current && !Number.isNaN(current.getTime()) && current.getTime() > now.getTime()) {
-    return current;
+  if ((earned?.rank || 0) > 1) {
+    return {
+      vip: earned,
+      expiresAt: addVipYear(now),
+      periodSpend,
+      upgraded: (earned.rank || 0) > prevRank,
+      downgraded: (earned.rank || 0) < prevRank,
+    };
   }
 
-  if (yearSpend >= finalMinSpend) return oneYearLater;
-
-  if (protectEnd && protectEnd.getTime() > now.getTime() && isGoldDowngradeProtected(user, { now })) {
-    return protectEnd;
-  }
-
-  return null;
+  return {
+    vip: defaultVip(),
+    expiresAt: null,
+    periodSpend,
+    upgraded: false,
+    downgraded: prevRank > 1,
+  };
 }
 
 export async function vipForSpend(spend = 0) {
@@ -213,56 +267,73 @@ export async function vipForSpend(spend = 0) {
 }
 
 /**
- * Sync VIP from rolling 1-year spend.
- * Lifetime totalSpend is kept separately; tier uses year window.
- * Old members (lifetime spend >= 100) are protected from falling below gold for 3 years.
+ * Sync one member.
+ * Rolling 1-year spend can raise the tier at any time.
+ * A paid tier is held until vipExpiresAt. On that date, spend inside the
+ * membership year decides whether it is kept, lowered, or cleared.
  */
 export async function syncUserVip(user) {
   if (!user?._id) return null;
 
-  // Rebuild lifetime from transactions so import-only writes stay accurate.
+  const now = new Date();
   const lifetime = await getLifetimeSpend(user._id);
   user.totalSpend = lifetime;
 
-  const yearSpend = await getYearSpend(user._id);
+  const yearSpend = await getYearSpend(user._id, { now });
   const prevVip = getVipById(user.vip);
-  let earned = await vipForSpend(yearSpend);
-  const update = { totalSpend: lifetime };
-  let upgraded = false;
-  let protectedFromDowngrade = false;
-
+  const earned = await vipForSpend(yearSpend);
   const prevId = String(prevVip?.id || user.vip || '');
-  let nextId = String(earned?.id || earned?._id || '');
   const prevRank = prevVip?.rank || 0;
-  let nextRank = earned?.rank || 0;
+  const earnedRank = earned?.rank || 0;
+  const currentExpiry = validDate(user.vipExpiresAt);
+  const manualExpiry = Boolean(user.vipExpiresManual && currentExpiry);
 
-  // Grandfather rule: lifetime spend >= 100 → cannot fall below gold within 3 years.
-  if (
-    nextRank < prevRank &&
-    nextRank < 2 &&
-    prevRank >= 2 &&
-    isGoldDowngradeProtected(user)
-  ) {
-    const gold = requireVip(getVipBySlug('gold')?.id);
-    if (gold) {
-      earned = gold;
-      nextId = String(gold.id);
-      nextRank = gold.rank || 2;
-      protectedFromDowngrade = true;
+  let nextVip = prevVip ? requireVip(prevVip.id) : defaultVip();
+  let nextExpires = currentExpiry;
+  let periodSpend = null;
+  let upgraded = false;
+  let downgraded = false;
+
+  if (isBaseVip(prevVip)) {
+    if (earnedRank > 1) {
+      nextVip = earned;
+      nextExpires = addVipYear(now);
+      upgraded = true;
+    } else {
+      nextVip = defaultVip();
+      nextExpires = null;
     }
+  } else if (currentExpiry && currentExpiry.getTime() > now.getTime()) {
+    if (earnedRank > prevRank) {
+      nextVip = earned;
+      nextExpires = manualExpiry ? currentExpiry : addVipYear(now);
+      upgraded = true;
+    }
+  } else {
+    const resolved = await resolveExpiredMembership(
+      user._id,
+      prevVip,
+      earned,
+      now,
+      currentExpiry
+    );
+    nextVip = resolved.vip;
+    nextExpires = manualExpiry && !isBaseVip(resolved.vip) ? currentExpiry : resolved.expiresAt;
+    periodSpend = resolved.periodSpend;
+    upgraded = resolved.upgraded;
+    downgraded = resolved.downgraded;
   }
 
-  if (earned && prevId !== nextId) {
-    user.vip = earned._id;
-    update.vip = earned._id;
-    upgraded = nextRank > prevRank;
+  const nextId = String(nextVip?.id || nextVip?._id || '');
+  const update = { totalSpend: lifetime };
+
+  if (prevId !== nextId) {
+    user.vip = nextVip._id;
+    update.vip = nextVip._id;
   }
 
-  const finalVip = getVipById(user.vip) || toVipJSON(earned);
-  const finalRank = finalVip?.rank || 0;
-  let vipExpiresAt = user.vipExpiresAt || null;
-  if (isBaseVip(finalVip)) {
-    vipExpiresAt = null;
+  if (isBaseVip(nextVip)) {
+    nextExpires = null;
     user.vipExpiresAt = null;
     user.vipExpiresForever = false;
     user.vipExpiresManual = false;
@@ -270,24 +341,12 @@ export async function syncUserVip(user) {
     update.vipExpiresForever = false;
     update.vipExpiresManual = false;
   } else {
-    if (user.vipExpiresForever) {
-      user.vipExpiresForever = false;
+    user.vipExpiresForever = false;
+    update.vipExpiresForever = false;
+    if (!manualExpiry) {
+      user.vipExpiresAt = nextExpires;
       user.vipExpiresManual = false;
-      update.vipExpiresForever = false;
-      update.vipExpiresManual = false;
-    }
-    if (!user.vipExpiresManual || !user.vipExpiresAt) {
-      vipExpiresAt = resolveVipExpiresAt(user, {
-        now: new Date(),
-        finalRank,
-        finalMinSpend: finalVip?.minSpend || 0,
-        yearSpend,
-        upgraded,
-        protectedFromDowngrade,
-      });
-      user.vipExpiresAt = vipExpiresAt;
-      user.vipExpiresManual = false;
-      update.vipExpiresAt = vipExpiresAt;
+      update.vipExpiresAt = nextExpires;
       update.vipExpiresManual = false;
     }
   }
@@ -295,19 +354,19 @@ export async function syncUserVip(user) {
   await User.updateOne({ _id: user._id }, update);
 
   if (upgraded) {
-    await onVipUpgraded(user, { prevVip, nextVip: earned });
+    await onVipUpgraded(user, { prevVip, nextVip });
   }
 
-  const finalId = String(getVipById(user.vip)?.id || user.vip || '');
   return {
-    vip: getVipById(user.vip) ? requireVip(user.vip) : earned,
+    vip: nextVip,
     prevVip,
     yearSpend,
-    vipExpiresAt,
-    changed: prevId !== finalId,
+    periodSpend,
+    vipExpiresAt: isBaseVip(nextVip) ? null : user.vipExpiresAt || nextExpires,
+    changed: prevId !== nextId,
     upgraded,
-    downgraded: Boolean(finalId !== prevId && nextRank < prevRank),
-    protectedFromDowngrade,
+    downgraded,
+    protectedFromDowngrade: false,
   };
 }
 
@@ -342,7 +401,7 @@ export async function syncUsersVip(userIds) {
   }
 }
 
-/** Daily job: re-evaluate every member against rolling 1-year spend. */
+/** Daily job: upgrade from rolling spend, and renew or drop expired memberships. */
 export async function runDailyVipSync() {
   const result = {
     scanned: 0,
@@ -377,9 +436,22 @@ export async function runDailyVipSync() {
   return result;
 }
 
+/** Membership tier that covers a sale, if the sale sits inside that membership year. */
+function cashbackVip(user, at) {
+  const held = getVipById(user?.vip);
+  const expiresAt = validDate(user?.vipExpiresAt);
+  if (!held || isBaseVip(held) || !expiresAt) return null;
+  const end = expiresAt.getTime();
+  const time = new Date(at).getTime();
+  if (Number.isNaN(time)) return null;
+  const start = end - VIP_SPEND_WINDOW_MS;
+  if (time < start || time > end) return null;
+  return held;
+}
+
 /**
  * Apply points cashback for one user's pending spend transactions.
- * VIP rate = tier earned from rolling spend as of each txn's createdAt.
+ * Rate follows the membership held on the sale date. Outside that year, rolling spend decides.
  * All points from this run are written as a single 「點數回饋」 transaction.
  */
 export async function applyPendingCashbackForUser(user) {
@@ -392,7 +464,7 @@ export async function applyPendingCashbackForUser(user) {
     cashbackAt: null,
     source: { $nin: NON_SPEND_TRANSACTION_SOURCES },
     totalAmount: { $gt: 0 },
-  }).sort({ createdAt: 1, _id: 1 });
+  }).sort({ orderedAt: 1, createdAt: 1, _id: 1 });
 
   if (!pending.length) {
     return { points: 0, orders: 0, transaction: null };
@@ -403,13 +475,15 @@ export async function applyPendingCashbackForUser(user) {
   const updates = [];
 
   for (const txn of pending) {
-    const at = txn.createdAt || now;
-    const vip = await vipAtDate(user._id, at);
-    const points = calcCashbackPoints(vip, txn.totalAmount);
+    const at = saleAt(txn, now);
+    const vip = cashbackVip(user, at) || (await vipAtDate(user._id, at));
+    const bonus = cashbackBonusMultiplier(vip, at);
+    const points = calcCashbackPoints(vip, txn.totalAmount, at);
     totalPoints += points;
     updates.push({
       id: txn._id,
       points,
+      bonus,
       orderRef: txn.externalOrderId || txn.orderNo || txn.txnNo || String(txn._id),
       vipName: vip?.name || '',
       every: vip?.cashbackEvery || 0,
@@ -442,7 +516,7 @@ export async function applyPendingCashbackForUser(user) {
     .filter((item) => item.points > 0)
     .map(
       (item) =>
-        `${item.orderRef}（${item.vipName || '會員'} 滿${item.every}→${item.points}）`
+        `${item.orderRef}（${item.vipName || '會員'} 滿${item.every}→${item.points}${item.bonus > 1 ? `，${item.bonus}倍` : ''}）`
     );
 
   const transaction = await Transaction.create({
@@ -468,6 +542,7 @@ export async function applyPendingCashbackForUser(user) {
     ],
     totalAmount: totalPoints,
     importedAt: now,
+    orderedAt: now,
     cashbackAt: now,
     cashbackPoints: 0,
   });

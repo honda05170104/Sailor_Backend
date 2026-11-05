@@ -63,7 +63,7 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    /** Current VIP membership end date (spend tier 1yr, or gold-protect end). */
+    /** Current VIP membership end date. Renewal is decided at this date. */
     vipExpiresAt: {
       type: Date,
       default: null,

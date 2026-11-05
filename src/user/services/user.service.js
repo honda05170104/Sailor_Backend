@@ -10,7 +10,13 @@ import {
 } from './line.service.js';
 import { normalizeMobile } from '../../services/orderImport.js';
 import { parseStoreNumber } from '../../data/stores.js';
-import { defaultVip, syncUserVip, vipProgress, listVips } from '../../services/vip.js';
+import {
+  defaultVip,
+  syncUserVip,
+  vipProgress,
+  listVips,
+  NON_SPEND_TRANSACTION_SOURCES,
+} from '../../services/vip.js';
 import { applyTagIds } from '../../services/tags.js';
 import { listUserCoupons, countAvailableCoupons } from '../../manager/services/coupon.service.js';
 import { issuePendingPromotions } from '../../manager/services/promotion.service.js';
@@ -84,7 +90,11 @@ async function issueAuthToken(user) {
 }
 
 async function listTransactions(user) {
-  const transactions = await Transaction.find({ user: user._id }).sort({
+  const transactions = await Transaction.find({
+    user: user._id,
+    source: { $nin: NON_SPEND_TRANSACTION_SOURCES },
+  }).sort({
+    orderedAt: -1,
     createdAt: -1,
   });
 

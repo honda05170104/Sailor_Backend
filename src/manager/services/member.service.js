@@ -9,7 +9,10 @@ import { normalizeMobile } from "../../services/orderImport.js";
 import { listUserCoupons } from "./coupon.service.js";
 import { requireStore, defaultStore } from "../../data/stores.js";
 import { requireVip, isBaseVip, getVipById, getVipBySlug } from "../../data/vips.js";
-import { getLifetimeSpend } from "../../services/vip.js";
+import {
+  getLifetimeSpend,
+  NON_SPEND_TRANSACTION_SOURCES,
+} from "../../services/vip.js";
 import { zonedInstant, zonedParts } from "../../services/globalConfig.js";
 import {
   DEFAULT_TRANSACTION_ORDER_STATUS,
@@ -132,7 +135,11 @@ export async function getMember(id) {
     throw new AppError("User not found", ErrorCode.NOT_FOUND);
   }
 
-  const transactions = await Transaction.find({ user: user._id }).sort({
+  const transactions = await Transaction.find({
+    user: user._id,
+    source: { $nin: NON_SPEND_TRANSACTION_SOURCES },
+  }).sort({
+    orderedAt: -1,
     createdAt: -1,
   });
   const speciesReviews = await SpeciesReview.find({
@@ -204,7 +211,8 @@ async function recordBalanceAdjustment(user, before, { branchId, staff }) {
   if (creditDelta === 0) return null;
 
   const branch = await requireBranch(branchId);
-  const txnNo = generateTxnNo();
+  const now = new Date();
+  const txnNo = generateTxnNo(now);
   const externalOrderId = `adjust-${txnNo}`;
   const signed =
     creditDelta > 0 ? `+${creditDelta}` : String(creditDelta);
@@ -230,7 +238,8 @@ async function recordBalanceAdjustment(user, before, { branchId, staff }) {
       },
     ],
     totalAmount: creditDelta,
-    importedAt: new Date(),
+    importedAt: now,
+    orderedAt: now,
   });
 }
 

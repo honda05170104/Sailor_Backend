@@ -50,6 +50,30 @@ export async function listOrderImports({ branchId, date } = {}) {
   };
 }
 
+function saleDatePrefix(orderDate) {
+  const prefix = String(orderDate || '').replace(/-/g, '');
+  return /^\d{8}$/.test(prefix) ? prefix : '';
+}
+
+/** Orders in this file, plus same-store orders whose POS number is this business day. */
+async function ordersForImport(orderImport) {
+  const linked = await ImportedOrder.find({ import: orderImport._id });
+  const prefix = saleDatePrefix(orderImport.orderDate);
+  if (!prefix) return linked;
+
+  const bySaleDate = await ImportedOrder.find({
+    branch: orderImport.branch,
+    'rows.0.訂單編號': new RegExp(`^${prefix}-`),
+  });
+
+  const seen = new Set(linked.map((doc) => String(doc._id)));
+  for (const doc of bySaleDate) {
+    if (seen.has(String(doc._id))) continue;
+    linked.push(doc);
+  }
+  return linked;
+}
+
 export async function getOrderImport(id) {
   if (!id || !mongoose.isValidObjectId(id)) {
     throw new AppError(
@@ -66,9 +90,12 @@ export async function getOrderImport(id) {
     );
   }
 
-  const importedOrders = await ImportedOrder.find({
-    import: orderImport._id,
-  }).sort({ createdAt: -1 });
+  const importedOrders = await ordersForImport(orderImport);
+  importedOrders.sort((a, b) => {
+    const left = String(a.rows?.[0]?.['訂單編號'] || '');
+    const right = String(b.rows?.[0]?.['訂單編號'] || '');
+    return right.localeCompare(left);
+  });
 
   return {
     orderImport: orderImport.toSafeJSON(),
