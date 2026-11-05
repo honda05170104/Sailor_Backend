@@ -19,12 +19,20 @@
 
     vipRulesEl.innerHTML = vips
       .map((vip) => {
+        const rules = Array.isArray(vip.rules) ? vip.rules : [];
         const benefits = Array.isArray(vip.benefits) ? vip.benefits : [];
-        const benefitHtml = benefits.length
-          ? `<ul class="vip-benefits">${benefits
+        const ruleHtml = rules.length
+          ? `<p class="vip-rule-label">升降規則</p><ul class="vip-rule-lines">${rules
               .map((item) => `<li>${escapeHtml(item)}</li>`)
               .join("")}</ul>`
-          : `<p class="muted">${escapeHtml(vip.description || "—")}</p>`;
+          : "";
+        const benefitHtml = benefits.length
+          ? `<p class="vip-rule-label">會員權益</p><ul class="vip-benefits">${benefits
+              .map((item) => `<li>${escapeHtml(item)}</li>`)
+              .join("")}</ul>`
+          : rules.length
+            ? ""
+            : `<p class="muted">${escapeHtml(vip.description || "—")}</p>`;
 
         const retain = Number(vip.retainSpend) || 0;
         const spendLabel =
@@ -37,6 +45,7 @@
             <h3>${escapeHtml(vip.name)}</h3>
             <span class="vip-rule-spend">${spendLabel}</span>
           </div>
+          ${ruleHtml}
           ${benefitHtml}
         </article>`;
       })

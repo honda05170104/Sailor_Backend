@@ -30,11 +30,20 @@
   white-space: nowrap;
 }
 
+.vip-rule-label {
+  margin: 0.65rem 0 0.2rem;
+  color: var(--muted, #666);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.vip-rule-lines,
 .vip-benefits {
   margin: 0;
   padding-left: 1.2rem;
 }
 
+.vip-rule-lines li,
 .vip-benefits li {
   margin: 0.2rem 0;
   line-height: 1.45;

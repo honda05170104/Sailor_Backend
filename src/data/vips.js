@@ -114,19 +114,18 @@ function pointLines(vip) {
 
 function decorateVip(def) {
   const lower = previousPaidTier(def);
-  const spend = vipSpendLines(def, lower);
+  const rules = vipSpendLines(def, lower);
   const perks = Array.isArray(def.perks) ? def.perks : [];
   const benefits = [
-    ...spend,
     ...(def.perksBeforePoints || []),
     ...pointLines(def),
     ...(def.perksAfterPoints || []),
     ...perks,
   ];
-  const description = spend.length
-    ? `${spend[0]}。${spend[1]}。`
+  const description = rules.length
+    ? `${rules.join("。")}。`
     : def.description || "";
-  return { ...def, description, benefits };
+  return { ...def, description, rules, benefits };
 }
 
 export const VIPS = VIP_DEFS.map(decorateVip);
@@ -206,6 +205,7 @@ export function toVipJSON(vip) {
       : [],
     cashbackBonusMultiplier: vip.cashbackBonusMultiplier ?? 1,
     description: vip.description || "",
+    rules: Array.isArray(vip.rules) ? vip.rules.map(String) : [],
     benefits: Array.isArray(vip.benefits) ? vip.benefits.map(String) : [],
   };
 }
