@@ -9,7 +9,12 @@ import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
 import { snapshotCoupon, resolveCouponExpiresAt } from '../../services/coupons.js';
 import { saleAt } from '../../services/transactions.js';
-import { getVipById, getVipBySlug, requireVip } from '../../data/vips.js';
+import {
+  getVipById,
+  getVipBySlug,
+  requireVip,
+  vipGiftPromotion,
+} from '../../data/vips.js';
 
 /** Taiwan local date parts for birthday matching. */
 function taiwanNowParts(date = new Date()) {
@@ -122,6 +127,24 @@ async function findEnabledByType(type) {
   return Promotion.findOne({ type, enabled: true }).populate('coupon');
 }
 
+/** VIP gift amount and copy come from src/data/vips.js, not the stored coupon. */
+function couponForGift(promotion, coupon) {
+  const gift = vipGiftPromotion(promotion?.key);
+  if (!gift) return coupon;
+  return {
+    _id: coupon._id,
+    name: gift.couponName,
+    description: gift.couponDescription,
+    type: coupon.type || 'amount',
+    value: gift.amount,
+    minSpend: coupon.minSpend || 0,
+    expiryMode: 'relative',
+    expireDays: gift.expireDays,
+    startsAt: null,
+    endsAt: null,
+  };
+}
+
 async function tryClaimAndIssue(user, promotion, claimKey) {
   if (!user?._id || !promotion?._id || !claimKey) return null;
   if (!promotion.coupon) return null;
@@ -132,6 +155,7 @@ async function tryClaimAndIssue(user, promotion, claimKey) {
       : await Coupon.findById(promotion.coupon);
 
   if (!coupon || coupon.enabled === false) return null;
+  const giftCoupon = couponForGift(promotion, coupon);
 
   try {
     await PromotionClaim.create({
@@ -145,10 +169,10 @@ async function tryClaimAndIssue(user, promotion, claimKey) {
   }
 
   const issuedAt = new Date();
-  const expiresAt = resolveCouponExpiresAt(coupon, issuedAt);
+  const expiresAt = resolveCouponExpiresAt(giftCoupon, issuedAt);
   const issued = await UserCoupon.create({
     user: user._id,
-    ...snapshotCoupon(coupon),
+    ...snapshotCoupon(giftCoupon),
     status: 'available',
     source: 'promotion',
     promotion: promotion._id,
@@ -200,6 +224,7 @@ export async function redeemPosJoinGift(user, { usedAt = new Date() } = {}) {
       ? promotion.coupon
       : await Coupon.findById(promotion.coupon);
   if (!coupon || coupon.enabled === false) return null;
+  const giftCoupon = couponForGift(promotion, coupon);
 
   const claimKey = `join:${promotion.key}`;
   let claim = await PromotionClaim.findOne({ user: user._id, claimKey });
@@ -238,14 +263,14 @@ export async function redeemPosJoinGift(user, { usedAt = new Date() } = {}) {
   if (!issued) {
     issued = await UserCoupon.create({
       user: user._id,
-      ...snapshotCoupon(coupon),
+      ...snapshotCoupon(giftCoupon),
       status: 'used',
       source: 'promotion',
       promotion: promotion._id,
       promotionName: promotion.name || '',
       issuedAt: usedAt,
       usedAt,
-      expiresAt: resolveCouponExpiresAt(coupon, usedAt),
+      expiresAt: resolveCouponExpiresAt(giftCoupon, usedAt),
     });
     action = 'issued';
   } else if (issued.status !== 'used') {
@@ -447,7 +472,7 @@ export async function issueUpgradeGift(user, toVip) {
 }
 
 /**
- * VIP birthday gift — gold 100 / black 500, once per calendar year.
+ * VIP birthday gift — amount from src/data/vips.js, once per calendar year.
  * Issued on the 1st of the birthday month (Asia/Taipei).
  */
 export async function issueBirthdayGift(user, { forceDayOne = true } = {}) {

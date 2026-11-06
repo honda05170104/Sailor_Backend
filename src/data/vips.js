@@ -19,7 +19,9 @@ const VIP_DEFS = [
     cashbackBonusDays: [],
     cashbackBonusMultiplier: 1,
     description: "入會會員。",
-    perks: ["首次註冊即享 20元折價券"],
+    /** Welcome coupon, issued once on join. */
+    joinGift: 20,
+    perks: [],
   },
   {
     id: "6a96b19f24ebb49b9046b617",
@@ -34,9 +36,14 @@ const VIP_DEFS = [
     /** Taipei calendar days when cashback points are multiplied. */
     cashbackBonusDays: [10],
     cashbackBonusMultiplier: 2,
+    /** Coupon issued once when the member reaches this tier. */
+    upgradeGift: 100,
+    /** Coupon issued once per year, on the 1st of the birthday month. */
+    birthdayGift: 100,
+    /** Where the birthday line sits in the member-facing benefit list. */
+    birthdayGiftAt: "after",
     perksBeforePoints: ["用品類最低 85 折起（活體、餌料除外）"],
     perksAfterPoints: [
-      "生日禮 100 元優惠券",
       "寄宿動物一天折 50 元",
       "史麥動物醫院掛號免服務費 https://petsmilehospital.com/",
     ],
@@ -53,10 +60,10 @@ const VIP_DEFS = [
     cashbackPoints: 1,
     cashbackBonusDays: [10, 20],
     cashbackBonusMultiplier: 2,
-    perksBeforePoints: [
-      "用品類 最低 75 折起（活體、餌料除外）",
-      "生日禮 300 元優惠券",
-    ],
+    upgradeGift: 300,
+    birthdayGift: 300,
+    birthdayGiftAt: "before",
+    perksBeforePoints: ["用品類 最低 75 折起（活體、餌料除外）"],
     perksAfterPoints: [
       "寄宿動物前3天免費 (一年 2 次)",
       "史麥動物醫院免掛號費 + 每年一次理學健檢(在官方 Line 通知我們幫您進行預約) https://petsmilehospital.com/",
@@ -68,6 +75,13 @@ const VIP_DEFS = [
 
 /** 1 point redeems as 1 yuan. */
 export const POINT_YUAN = 1;
+
+/** Days after issue before a VIP gift coupon expires. */
+export const VIP_GIFT_EXPIRE_DAYS = {
+  join: 60,
+  upgrade: 60,
+  birthday: 30,
+};
 
 function formatMoney(amount) {
   return Number(amount || 0).toLocaleString("zh-TW");
@@ -118,13 +132,18 @@ function pointLines(vip) {
 function decorateVip(def) {
   const lower = previousPaidTier(def);
   const rules = vipSpendLines(def, lower);
-  const perks = Array.isArray(def.perks) ? def.perks : [];
-  const benefits = [
-    ...(def.perksBeforePoints || []),
-    ...pointLines(def),
-    ...(def.perksAfterPoints || []),
-    ...perks,
-  ];
+  const before = [...(def.perksBeforePoints || [])];
+  const after = [...(def.perksAfterPoints || [])];
+  const perks = [...(def.perks || [])];
+  if (Number(def.birthdayGift) > 0) {
+    const line = `生日禮 ${formatMoney(def.birthdayGift)} 元優惠券`;
+    if (def.birthdayGiftAt === "before") before.push(line);
+    else after.unshift(line);
+  }
+  if (Number(def.joinGift) > 0) {
+    perks.unshift(`首次註冊即享 ${formatMoney(def.joinGift)}元折價券`);
+  }
+  const benefits = [...before, ...pointLines(def), ...after, ...perks];
   const description = rules.length
     ? `${rules.join("。")}。`
     : def.description || "";
@@ -132,6 +151,60 @@ function decorateVip(def) {
 }
 
 export const VIPS = VIP_DEFS.map(decorateVip);
+
+/** Join / upgrade / birthday coupons. Amounts and expiry come from this file. */
+export function vipGiftPromotions() {
+  const gifts = [];
+  const push = (gift) => {
+    gifts.push({
+      ...gift,
+      expireDays: VIP_GIFT_EXPIRE_DAYS[gift.type],
+    });
+  };
+  for (const vip of VIPS) {
+    if (Number(vip.joinGift) > 0) {
+      const amount = Number(vip.joinGift);
+      push({
+        key: "join",
+        type: "join",
+        amount,
+        couponName: `入會禮｜折抵 $${formatMoney(amount)}`,
+        couponDescription: "歡迎加入水手！新會員註冊即贈，無低消。",
+        promotionName: "入會禮",
+        promotionDescription: `首次以 LINE 加入會員時自動發放 ${formatMoney(amount)} 元優惠券。`,
+      });
+    }
+    if (Number(vip.upgradeGift) > 0) {
+      const amount = Number(vip.upgradeGift);
+      push({
+        key: `upgrade-${vip.slug}`,
+        type: "upgrade",
+        amount,
+        couponName: `${vip.name}升等禮｜折抵 $${formatMoney(amount)}`,
+        couponDescription: `升等至${vip.name}時發放，每個等級一次。`,
+        promotionName: `${vip.name}升等禮`,
+        promotionDescription: `近一年累積消費滿 ${formatMoney(vip.minSpend)} 元升等${vip.name}時發放 ${formatMoney(amount)} 元優惠券。`,
+      });
+    }
+    if (Number(vip.birthdayGift) > 0) {
+      const amount = Number(vip.birthdayGift);
+      push({
+        key: `birthday-${vip.slug}`,
+        type: "birthday",
+        amount,
+        couponName: `${vip.name}生日禮｜折抵 $${formatMoney(amount)}`,
+        couponDescription: `${vip.name}會員專屬，生日當月 1 號自動發放，無低消。`,
+        promotionName: `${vip.name}生日禮`,
+        promotionDescription: `${vip.name}會員生日當月 1 號凌晨自動發放 ${formatMoney(amount)} 元優惠券，每年一次。`,
+      });
+    }
+  }
+  return gifts;
+}
+
+export function vipGiftPromotion(key) {
+  return vipGiftPromotions().find((gift) => gift.key === key) || null;
+}
 
 /** Lifetime spend threshold for gold downgrade protection. */
 export const GOLD_PROTECT_MIN_LIFETIME_SPEND = 100;
@@ -207,6 +280,9 @@ export function toVipJSON(vip) {
       ? vip.cashbackBonusDays.map(Number)
       : [],
     cashbackBonusMultiplier: vip.cashbackBonusMultiplier ?? 1,
+    joinGift: vip.joinGift ?? 0,
+    upgradeGift: vip.upgradeGift ?? 0,
+    birthdayGift: vip.birthdayGift ?? 0,
     description: vip.description || "",
     rules: Array.isArray(vip.rules) ? vip.rules.map(String) : [],
     benefits: Array.isArray(vip.benefits) ? vip.benefits.map(String) : [],
