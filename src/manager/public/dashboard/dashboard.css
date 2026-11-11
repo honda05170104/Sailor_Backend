@@ -1,3 +1,24 @@
+.dashboard-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dashboard-tools label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashboard-tools input[type="date"] {
+  width: 168px;
+}
+
+.tier-new {
+  margin-top: 4px;
+}
+
 .store-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

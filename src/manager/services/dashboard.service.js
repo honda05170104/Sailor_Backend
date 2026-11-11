@@ -5,7 +5,15 @@ import { listStores } from "../../data/stores.js";
 import { isBaseVip, listVips } from "../../data/vips.js";
 import { toNumber } from "../../services/orderImport.js";
 import { getTimes } from "./config.service.js";
-import { ymdFromParts, zonedParts } from "../../services/globalConfig.js";
+import AppError from "../../utils/AppError.js";
+import { ErrorCode } from "../../constants/codes.js";
+import {
+  addDays,
+  parseYmd,
+  ymdFromParts,
+  zonedInstant,
+  zonedParts,
+} from "../../services/globalConfig.js";
 
 function storeShortName(store) {
   const name = String(store?.name || "").trim();
@@ -27,32 +35,55 @@ function memberTotal(tiers) {
   return tiers.reduce((sum, tier) => sum + tier.count, 0);
 }
 
-/** Same total the import detail shows: the order's 總金額, once. */
-function importedOrderTotal(order) {
-  const row = order?.rows?.[0] || {};
-  return toNumber(row["總金額"] ?? row.totalAmount);
+function requireYmd(value, field) {
+  const parts = parseYmd(value);
+  if (!parts) {
+    throw new AppError(
+      { field, message: "日期格式不正確" },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+  return parts;
 }
 
-export async function getDashboard() {
+function resolveRange(timeZone, from, to) {
+  const today = zonedParts(new Date(), timeZone);
+  const defaultTo = ymdFromParts(today);
+  const defaultFrom = ymdFromParts({ year: today.year, month: today.month, day: 1 });
+  const start = requireYmd(from || defaultFrom, "from");
+  const end = requireYmd(to || defaultTo, "to");
+  const startKey = ymdFromParts(start);
+  const endKey = ymdFromParts(end);
+  if (startKey > endKey) {
+    throw new AppError(
+      { field: "from", message: "開始日期不能晚於結束日期" },
+      ErrorCode.BAD_REQUEST
+    );
+  }
+  const endExclusive = addDays(end, 1);
+  return {
+    from: startKey,
+    to: endKey,
+    fromAt: zonedInstant(timeZone, start.year, start.month, start.day),
+    toAt: zonedInstant(timeZone, endExclusive.year, endExclusive.month, endExclusive.day),
+  };
+}
+
+export async function getDashboard({ from, to } = {}) {
   const times = await getTimes();
   const timeZone = times.timezone || "Asia/Taipei";
   const today = zonedParts(new Date(), timeZone);
-  const nextMonth =
-    today.month === 12
-      ? { year: today.year + 1, month: 1 }
-      : { year: today.year, month: today.month + 1 };
+  const range = resolveRange(timeZone, from, to);
   const vips = listVips();
   const stores = listStores();
   const baseVip = vips.find((vip) => isBaseVip(vip)) || vips[0];
   const tierIndex = new Map(vips.map((vip, index) => [vip.id, index]));
 
-  const monthKey = `${today.year}-${String(today.month).padStart(2, "0")}`;
-  const nextMonthKey = `${nextMonth.year}-${String(nextMonth.month).padStart(2, "0")}-01`;
   const importBatches = await OrderImport.find({
-    orderDate: { $gte: `${monthKey}-01`, $lt: nextMonthKey },
+    orderDate: { $gte: range.from, $lte: range.to },
   }).select("_id");
 
-  const [memberRows, importedOrders] = await Promise.all([
+  const [memberRows, newMemberRows, importedOrders] = await Promise.all([
     User.aggregate([
       {
         $group: {
@@ -61,27 +92,45 @@ export async function getDashboard() {
         },
       },
     ]),
-    ImportedOrder.find({
-      import: { $in: importBatches.map((batch) => batch._id) },
-    }).select("branch rows"),
+    User.aggregate([
+      { $match: { createdAt: { $gte: range.fromAt, $lt: range.toAt } } },
+      { $group: { _id: "$registeredStore", count: { $sum: 1 } } },
+    ]),
+    ImportedOrder.aggregate([
+      { $match: { import: { $in: importBatches.map((batch) => batch._id) } } },
+      {
+        $project: {
+          branch: 1,
+          total: { $ifNull: [{ $arrayElemAt: ["$rows.總金額", 0] }, { $arrayElemAt: ["$rows.totalAmount", 0] }] },
+        },
+      },
+    ]),
   ]);
 
   const salesByBranch = new Map();
   for (const order of importedOrders) {
     const branchId = String(order.branch);
-    salesByBranch.set(branchId, (salesByBranch.get(branchId) || 0) + importedOrderTotal(order));
+    const amount = toNumber(order.total);
+    salesByBranch.set(branchId, (salesByBranch.get(branchId) || 0) + amount);
   }
+
+  const newMembersByStore = new Map(
+    newMemberRows.map((row) => [row._id ?? null, Number(row.count) || 0])
+  );
 
   const storeCards = stores.map((store) => ({
     id: store.id,
     storeId: store.storeId,
     name: storeShortName(store),
     revenue: salesByBranch.get(String(store.id)) || 0,
+    newMembers: newMembersByStore.get(store.storeId) || 0,
     tiers: emptyTiers(vips),
   }));
   const cardByStoreId = new Map(storeCards.map((card) => [card.storeId, card]));
   const totalTiers = emptyTiers(vips);
   let unassignedMembers = 0;
+  let newMembers = 0;
+  let unassignedNewMembers = 0;
 
   for (const row of memberRows) {
     const count = Number(row.count) || 0;
@@ -94,21 +143,27 @@ export async function getDashboard() {
     else unassignedMembers += count;
   }
 
+  for (const [storeId, count] of newMembersByStore) {
+    newMembers += count;
+    if (!cardByStoreId.has(storeId)) unassignedNewMembers += count;
+  }
+
   let totalRevenue = 0;
   for (const amount of salesByBranch.values()) totalRevenue += amount;
 
-  const month = `${today.year}-${String(today.month).padStart(2, "0")}`;
-
   return {
     date: ymdFromParts(today),
-    month,
+    from: range.from,
+    to: range.to,
     timezone: timeZone,
     total: {
       name: "全部",
       revenue: totalRevenue,
       tiers: totalTiers,
       memberTotal: memberTotal(totalTiers),
+      newMembers,
       unassignedMembers,
+      unassignedNewMembers,
     },
     stores: storeCards.map((card) => ({
       id: card.id,
@@ -117,6 +172,7 @@ export async function getDashboard() {
       revenue: card.revenue,
       tiers: card.tiers,
       memberTotal: memberTotal(card.tiers),
+      newMembers: card.newMembers,
     })),
   };
 }

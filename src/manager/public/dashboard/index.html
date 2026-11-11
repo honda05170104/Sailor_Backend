@@ -50,7 +50,13 @@
       <main>
         <div class="page-head">
           <h2>總覽</h2>
-          <p class="hint" id="dashboard-month"></p>
+          <div class="dashboard-tools">
+            <label for="dashboard-from">從</label>
+            <input id="dashboard-from" type="date" />
+            <label for="dashboard-to">到</label>
+            <input id="dashboard-to" type="date" />
+            <button id="dashboard-export" type="button">匯出報表</button>
+          </div>
         </div>
         <div class="store-grid" id="store-grid">
           <p class="hint">讀取中…</p>
