@@ -41,6 +41,15 @@
   margin-bottom: 8px;
 }
 
+#import-block-modal {
+  z-index: 30;
+}
+
+#import-block-message {
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
+
 .import-items {
   margin: 0;
   padding: 0;

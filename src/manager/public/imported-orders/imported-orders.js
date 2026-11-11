@@ -1,4 +1,4 @@
-const { api, escapeHtml, requireAuth, formatDate, bindModalDismiss } = window.Manager;
+const { api, escapeHtml, requireAuth, formatDate, bindModalDismiss, showToast } = window.Manager;
 
 const branchSelect = document.getElementById("import-branch");
 const dateInput = document.getElementById("import-date");
@@ -14,6 +14,8 @@ const detailRows = document.getElementById("import-detail-rows");
 const importForm = document.getElementById("import-form");
 const importModal = document.getElementById("import-modal");
 const importError = document.getElementById("import-error");
+const importBlockModal = document.getElementById("import-block-modal");
+const importBlockMessage = document.getElementById("import-block-message");
 let branches = [];
 
 function todayTaipei() {
@@ -106,6 +108,30 @@ function openImportModal() {
 
 function closeImportModal() {
   importModal.classList.add("hidden");
+}
+
+function storeNameById(branchId) {
+  const branch = branches.find((item) => item.id === branchId);
+  return storeLabel(branch) || "這間店";
+}
+
+function duplicateImportMessage(branchId, orderDate) {
+  return `${storeNameById(branchId)} ${orderDate} 已經有匯入紀錄，不能再匯入`;
+}
+
+function showImportBlocked(branchId, orderDate) {
+  importBlockMessage.textContent = duplicateImportMessage(branchId, orderDate);
+  importBlockModal.classList.remove("hidden");
+}
+
+function closeImportBlocked() {
+  importBlockModal.classList.add("hidden");
+}
+
+async function dayAlreadyImported(branchId, orderDate) {
+  const params = new URLSearchParams({ branchId, date: orderDate });
+  const data = await api(`/imported-orders?${params}`);
+  return (data.orderImports || []).length > 0;
 }
 
 function selectedImportId() {
@@ -280,13 +306,30 @@ async function init() {
     loadPage().catch(() => {});
   });
 
-  document.getElementById("import-open-btn").addEventListener("click", () => {
+  document.getElementById("import-open-btn").addEventListener("click", async () => {
+    const branchId = branchSelect.value;
+    const orderDate = dateInput.value;
+    if (branchId && orderDate) {
+      try {
+        if (await dayAlreadyImported(branchId, orderDate)) {
+          showImportBlocked(branchId, orderDate);
+          return;
+        }
+      } catch (error) {
+        showToast(error.message, "error");
+        return;
+      }
+    }
     openImportModal();
   });
   document.getElementById("import-cancel-btn").addEventListener("click", () => {
     closeImportModal();
   });
   bindModalDismiss(importModal, closeImportModal);
+  document.getElementById("import-block-ok").addEventListener("click", () => {
+    closeImportBlocked();
+  });
+  bindModalDismiss(importBlockModal, closeImportBlocked);
 
   importForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -309,6 +352,16 @@ async function init() {
     }
 
     try {
+      if (await dayAlreadyImported(branchId, orderDate)) {
+        showImportBlocked(branchId, orderDate);
+        return;
+      }
+    } catch (error) {
+      importError.textContent = error.message;
+      return;
+    }
+
+    try {
       const body = new FormData();
       body.append("branchId", branchId);
       body.append("orderDate", orderDate);
@@ -327,6 +380,10 @@ async function init() {
         await loadBatches();
       }
     } catch (error) {
+      if (String(error.message || "").includes("已經有匯入紀錄")) {
+        showImportBlocked(branchId, orderDate);
+        return;
+      }
       importError.textContent = error.message;
     }
   });

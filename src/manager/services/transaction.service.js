@@ -36,6 +36,17 @@ function parseOrderDate(value) {
   return date;
 }
 
+function storeShortName(store) {
+  const name = String(store?.name || '').trim();
+  if (!name) return '這間店';
+  const dash = name.lastIndexOf('-');
+  return dash >= 0 ? name.slice(dash + 1) : name;
+}
+
+function duplicateImportMessage(store, orderDate) {
+  return `${storeShortName(store)} ${orderDate} 已經有匯入紀錄，不能再匯入`;
+}
+
 function cell(row, ...keys) {
   for (const key of keys) {
     if (row[key] != null && String(row[key]).trim() !== '') {
@@ -278,6 +289,17 @@ export async function importOrderExport({
     );
   }
 
+  const existingImport = await OrderImport.exists({
+    branch: branch._id,
+    orderDate,
+  });
+  if (existingImport) {
+    throw new AppError(
+      { field: 'orderDate', message: duplicateImportMessage(branch, orderDate) },
+      ErrorCode.CONFLICT
+    );
+  }
+
   let records = Array.isArray(rows) && rows.length ? rows : null;
   if (!records && file) {
     records = parseImportFile(file);
@@ -307,11 +329,22 @@ export async function importOrderExport({
     skippedVoided: 0,
   };
 
-  const batch = await OrderImport.create({
-    branch: branch._id,
-    orderDate,
-    totalOrders: orders.length,
-  });
+  let batch;
+  try {
+    batch = await OrderImport.create({
+      branch: branch._id,
+      orderDate,
+      totalOrders: orders.length,
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      throw new AppError(
+        { field: 'orderDate', message: duplicateImportMessage(branch, orderDate) },
+        ErrorCode.CONFLICT
+      );
+    }
+    throw error;
+  }
   const spendUserIds = new Set();
 
   try {

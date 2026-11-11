@@ -25,6 +25,7 @@ const orderImportSchema = new mongoose.Schema(
 );
 
 orderImportSchema.index({ orderDate: -1, createdAt: -1 });
+orderImportSchema.index({ branch: 1, orderDate: 1 }, { unique: true });
 
 orderImportSchema.methods.toSafeJSON = function toSafeJSON() {
   const store = getStoreById(this.branch);
