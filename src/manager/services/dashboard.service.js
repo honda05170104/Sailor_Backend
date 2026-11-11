@@ -1,10 +1,11 @@
 import User from "../../models/User.js";
-import Transaction from "../../models/Transaction.js";
+import ImportedOrder from "../../models/ImportedOrder.js";
+import OrderImport from "../../models/OrderImport.js";
 import { listStores } from "../../data/stores.js";
 import { isBaseVip, listVips } from "../../data/vips.js";
-import { NON_SPEND_TRANSACTION_SOURCES } from "../../services/vip.js";
+import { toNumber } from "../../services/orderImport.js";
 import { getTimes } from "./config.service.js";
-import { ymdFromParts, zonedInstant, zonedParts } from "../../services/globalConfig.js";
+import { ymdFromParts, zonedParts } from "../../services/globalConfig.js";
 
 function storeShortName(store) {
   const name = String(store?.name || "").trim();
@@ -26,22 +27,32 @@ function memberTotal(tiers) {
   return tiers.reduce((sum, tier) => sum + tier.count, 0);
 }
 
+/** Same total the import detail shows: the order's 總金額, once. */
+function importedOrderTotal(order) {
+  const row = order?.rows?.[0] || {};
+  return toNumber(row["總金額"] ?? row.totalAmount);
+}
+
 export async function getDashboard() {
   const times = await getTimes();
   const timeZone = times.timezone || "Asia/Taipei";
   const today = zonedParts(new Date(), timeZone);
-  const monthStart = zonedInstant(timeZone, today.year, today.month, 1);
   const nextMonth =
     today.month === 12
       ? { year: today.year + 1, month: 1 }
       : { year: today.year, month: today.month + 1 };
-  const monthEnd = zonedInstant(timeZone, nextMonth.year, nextMonth.month, 1);
   const vips = listVips();
   const stores = listStores();
   const baseVip = vips.find((vip) => isBaseVip(vip)) || vips[0];
   const tierIndex = new Map(vips.map((vip, index) => [vip.id, index]));
 
-  const [memberRows, salesRows] = await Promise.all([
+  const monthKey = `${today.year}-${String(today.month).padStart(2, "0")}`;
+  const nextMonthKey = `${nextMonth.year}-${String(nextMonth.month).padStart(2, "0")}-01`;
+  const importBatches = await OrderImport.find({
+    orderDate: { $gte: `${monthKey}-01`, $lt: nextMonthKey },
+  }).select("_id");
+
+  const [memberRows, importedOrders] = await Promise.all([
     User.aggregate([
       {
         $group: {
@@ -50,17 +61,17 @@ export async function getDashboard() {
         },
       },
     ]),
-    Transaction.aggregate([
-      { $match: { source: { $nin: NON_SPEND_TRANSACTION_SOURCES } } },
-      { $addFields: { saleAt: { $ifNull: ["$orderedAt", "$createdAt"] } } },
-      { $match: { saleAt: { $gte: monthStart, $lt: monthEnd } } },
-      { $group: { _id: "$branch", total: { $sum: "$totalAmount" } } },
-    ]),
+    ImportedOrder.find({
+      import: { $in: importBatches.map((batch) => batch._id) },
+    }).select("branch rows"),
   ]);
 
-  const salesByBranch = new Map(
-    salesRows.map((row) => [String(row._id), Number(row.total) || 0])
-  );
+  const salesByBranch = new Map();
+  for (const order of importedOrders) {
+    const branchId = String(order.branch);
+    salesByBranch.set(branchId, (salesByBranch.get(branchId) || 0) + importedOrderTotal(order));
+  }
+
   const storeCards = stores.map((store) => ({
     id: store.id,
     storeId: store.storeId,
