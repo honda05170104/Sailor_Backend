@@ -100,7 +100,11 @@ function openImportModal() {
   importError.textContent = "";
   importForm.reset();
   fillImportBranchSelect(branches);
-  importForm.orderDate.value = dateInput.value || todayTaipei();
+  const orderDate = dateInput.value;
+  const hint = document.getElementById("import-hint");
+  hint.textContent = orderDate
+    ? `交易日期 ${orderDate}。支援 CSV、TXT、XLSX。會用客戶電話對應會員，有電話但還沒註冊會先建立會員。`
+    : "請先在外面選擇交易日期。";
   if (branchSelect.value) importForm.branchId.value = branchSelect.value;
   importModal.classList.remove("hidden");
   if (!branches.length) importError.textContent = "尚無分店，請先到分店頁新增";
@@ -337,13 +341,13 @@ async function init() {
 
     const file = importForm.file.files[0];
     const branchId = importForm.branchId.value;
-    const orderDate = importForm.orderDate.value;
+    const orderDate = dateInput.value;
     if (!branchId) {
       importError.textContent = "請選擇分店";
       return;
     }
     if (!orderDate) {
-      importError.textContent = "請選擇交易日期";
+      importError.textContent = "請先在外面選擇交易日期";
       return;
     }
     if (!file) {
@@ -372,7 +376,6 @@ async function init() {
         body,
       });
       closeImportModal();
-      dateInput.value = orderDate;
       branchSelect.value = branchId;
       if (selectedImportId()) {
         await closeDetail(true);
