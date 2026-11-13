@@ -43,10 +43,7 @@ const VIP_DEFS = [
     /** Where the birthday line sits in the member-facing benefit list. */
     birthdayGiftAt: "after",
     perksBeforePoints: ["用品類最低 85 折起（活體、餌料除外）"],
-    perksAfterPoints: [
-      "寄宿動物一天折 50 元",
-      "史麥動物醫院掛號免服務費 https://petsmilehospital.com/",
-    ],
+    perksAfterPoints: ["寄宿動物一天折 50 元"],
   },
   {
     id: "6a96b19f24ebb49b9046b618",
@@ -66,7 +63,6 @@ const VIP_DEFS = [
     perksBeforePoints: ["用品類 最低 75 折起（活體、餌料除外）"],
     perksAfterPoints: [
       "寄宿動物前3天免費 (一年 2 次)",
-      "史麥動物醫院免掛號費 + 每年一次理學健檢(在官方 Line 通知我們幫您進行預約) https://petsmilehospital.com/",
       "黑卡專屬社群：搶先解鎖稀有物種預購權與專屬特惠，與資深玩家深度交流",
       "不定期提供品牌活動",
     ],
