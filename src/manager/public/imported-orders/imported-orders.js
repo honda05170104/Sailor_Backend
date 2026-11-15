@@ -376,7 +376,6 @@ async function init() {
         body,
       });
       closeImportModal();
-      branchSelect.value = branchId;
       if (selectedImportId()) {
         await closeDetail(true);
       } else {
