@@ -290,7 +290,6 @@ export async function redeemPosJoinGift(user, { usedAt = new Date() } = {}) {
 
 /** POS line that upgrades a legacy member to black. */
 export const POS_LEGACY_REBATE_ITEM = '舊會員轉黑卡';
-const LEGACY_REBATE_COUPON_NAME = '舊會員回饋';
 
 export function orderHasPosLegacyRebate(order) {
   return (order?.items || []).some(
@@ -340,46 +339,13 @@ export async function promoteLegacyMemberToGold(user, opts) {
 }
 
 /**
- * Transaction contains 舊會員轉黑卡: become black, and record the rebate coupon as used.
- * Once per member. An existing unused rebate coupon is redeemed instead of issuing another.
+ * Transaction contains 舊會員轉黑卡: become black.
+ * No coupon is issued for this path anymore.
  */
 export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) {
   if (!user?._id) return null;
-
   const vip = await promoteLegacyMemberToBlack(user, { from: usedAt });
-
-  const coupon = await Coupon.findOne({
-    name: LEGACY_REBATE_COUPON_NAME,
-    enabled: { $ne: false },
-  });
-  if (!coupon) return { action: 'skipped', vip };
-
-  const existing = await UserCoupon.find({
-    user: user._id,
-    coupon: coupon._id,
-  }).sort({ issuedAt: 1, createdAt: 1 });
-
-  const used = existing.find((item) => item.status === 'used');
-  if (used) return { action: 'already', vip, coupon: used };
-
-  const open = existing.find((item) => item.status !== 'used');
-  if (open) {
-    open.status = 'used';
-    open.usedAt = usedAt;
-    await open.save();
-    return { action: 'redeemed', vip, coupon: open };
-  }
-
-  const issued = await UserCoupon.create({
-    user: user._id,
-    ...snapshotCoupon(coupon),
-    status: 'used',
-    source: 'manual',
-    issuedAt: usedAt,
-    usedAt,
-    expiresAt: resolveCouponExpiresAt(coupon, usedAt),
-  });
-  return { action: 'issued', vip, coupon: issued };
+  return { action: vip === 'already' ? 'already' : vip, vip };
 }
 
 /** Apply in-store coupon lines on one imported order. */
@@ -435,30 +401,20 @@ export async function backfillPosLegacyRebates() {
 }
 
 /**
- * Anyone on the legacy-rebate path (舊會員回饋券 or POS 舊會員轉黑卡) becomes black.
- * Does not change coupon status or issue black upgrade gifts.
+ * Anyone with POS 舊會員轉黑卡 becomes black.
+ * Does not issue black upgrade gifts.
  */
 export async function promoteLegacyRebateHolders() {
-  const userIds = new Set();
-
-  const coupon = await Coupon.findOne({ name: LEGACY_REBATE_COUPON_NAME });
-  if (coupon) {
-    for (const id of await UserCoupon.distinct('user', { coupon: coupon._id })) {
-      if (id) userIds.add(String(id));
-    }
-  }
-
-  for (const id of await Transaction.distinct('user', {
+  const userIds = await Transaction.distinct('user', {
     'items.name': POS_LEGACY_REBATE_ITEM,
-  })) {
-    if (id) userIds.add(String(id));
-  }
+  });
 
   const results = [];
   for (const id of userIds) {
+    if (!id) continue;
     const user = await User.findById(id);
     if (!user) {
-      results.push({ userId: id, vip: 'missing-user' });
+      results.push({ userId: String(id), vip: 'missing-user' });
       continue;
     }
     const prev = getVipById(user.vip);

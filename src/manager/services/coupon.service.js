@@ -15,8 +15,6 @@ import {
   snapshotCoupon,
 } from '../../services/coupons.js';
 import { multicastCoupon } from '../../services/lineMessaging.js';
-import { promoteLegacyMemberToBlack } from './promotion.service.js';
-
 async function expireStaleCoupons(userId) {
   await UserCoupon.updateMany(
     {
@@ -158,10 +156,6 @@ export async function issueCoupon(userId, { couponId, expiresAt } = {}) {
     issuedAt,
     expiresAt: expiry,
   });
-
-  if (coupon.name === '舊會員回饋') {
-    await promoteLegacyMemberToBlack(user);
-  }
 
   // 如果會員有綁 LINE，發送優惠券通知
   if (user.lineUserId) {
