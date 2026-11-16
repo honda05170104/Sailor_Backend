@@ -130,10 +130,13 @@ export function vipSpendLines(vip, lower = null) {
   if (!hasSingle && !hasYear) return [];
 
   const lines = [];
-  if (hasSingle) {
+  if (hasSingle && hasYear) {
+    lines.push(
+      `單筆消費滿 ${formatMoney(vip.singleSpend)} 元，或近一年累積消費滿 ${formatMoney(vip.minSpend)} 元升等`
+    );
+  } else if (hasSingle) {
     lines.push(`單筆消費滿 ${formatMoney(vip.singleSpend)} 元升等`);
-  }
-  if (hasYear) {
+  } else if (hasYear) {
     lines.push(`近一年累積消費滿 ${formatMoney(vip.minSpend)} 元升等`);
   }
   if (!(Number(vip.retainSpend) > 0)) return lines;
@@ -209,7 +212,7 @@ function upgradeThresholdCopy(vip) {
   if (Number(vip.minSpend) > 0) {
     parts.push(`近一年累積消費滿 ${formatMoney(vip.minSpend)} 元`);
   }
-  return parts.join("或");
+  return parts.join("，或");
 }
 
 /** Join / upgrade / birthday coupons. Amounts and expiry come from this file. */
