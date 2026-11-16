@@ -290,17 +290,11 @@ export async function redeemPosJoinGift(user, { usedAt = new Date() } = {}) {
 
 /** POS line that upgrades a legacy member to black. */
 export const POS_LEGACY_REBATE_ITEM = '舊會員轉黑卡';
-/** Older POS name — still matched for history / re-import. */
-export const POS_LEGACY_REBATE_ITEM_LEGACY = '舊會員回饋金';
-export const POS_LEGACY_REBATE_ITEMS = [
-  POS_LEGACY_REBATE_ITEM,
-  POS_LEGACY_REBATE_ITEM_LEGACY,
-];
 const LEGACY_REBATE_COUPON_NAME = '舊會員回饋';
 
 export function orderHasPosLegacyRebate(order) {
-  return (order?.items || []).some((item) =>
-    POS_LEGACY_REBATE_ITEMS.includes(String(item?.name || '').trim())
+  return (order?.items || []).some(
+    (item) => String(item?.name || '').trim() === POS_LEGACY_REBATE_ITEM
   );
 }
 
@@ -346,8 +340,7 @@ export async function promoteLegacyMemberToGold(user, opts) {
 }
 
 /**
- * Transaction contains 舊會員轉黑卡 (or legacy 舊會員回饋金):
- * become black, and record the rebate coupon as used.
+ * Transaction contains 舊會員轉黑卡: become black, and record the rebate coupon as used.
  * Once per member. An existing unused rebate coupon is redeemed instead of issuing another.
  */
 export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) {
@@ -438,16 +431,12 @@ export async function backfillPosJoinGifts() {
 
 /** One legacy-rebate redemption per member who already has the POS line. */
 export async function backfillPosLegacyRebates() {
-  const results = [];
-  for (const itemName of POS_LEGACY_REBATE_ITEMS) {
-    results.push(...(await backfillPosItem(itemName, redeemPosLegacyRebate)));
-  }
-  return results;
+  return backfillPosItem(POS_LEGACY_REBATE_ITEM, redeemPosLegacyRebate);
 }
 
 /**
- * Anyone on the legacy-rebate path (舊會員回饋券 or POS 舊會員轉黑卡 / 舊會員回饋金)
- * becomes black. Does not change coupon status or issue black upgrade gifts.
+ * Anyone on the legacy-rebate path (舊會員回饋券 or POS 舊會員轉黑卡) becomes black.
+ * Does not change coupon status or issue black upgrade gifts.
  */
 export async function promoteLegacyRebateHolders() {
   const userIds = new Set();
@@ -460,7 +449,7 @@ export async function promoteLegacyRebateHolders() {
   }
 
   for (const id of await Transaction.distinct('user', {
-    'items.name': { $in: POS_LEGACY_REBATE_ITEMS },
+    'items.name': POS_LEGACY_REBATE_ITEM,
   })) {
     if (id) userIds.add(String(id));
   }
