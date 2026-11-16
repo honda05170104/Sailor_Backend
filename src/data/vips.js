@@ -1,6 +1,19 @@
 import mongoose from "mongoose";
 
+/** 0=Sun … 6=Sat, matching JS getDay() / Asia/Taipei wall clock. */
+const WEEKDAY_LABELS = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+const WEEKDAY_SHORT = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
 /** Fixed VIP tiers — not stored in MongoDB. Keep ids stable for user.vip refs.
+ *  singleSpend = one purchase that unlocks this tier.
  *  minSpend = rolling 1-year spend to reach this tier.
  *  retainSpend = spend during the current membership year required to keep it.
  *  Member-facing spend copy is built from these numbers. */
@@ -11,16 +24,18 @@ const VIP_DEFS = [
     slug: "normal",
     rank: 1,
     minSpend: 0,
+    singleSpend: 0,
     retainSpend: 0,
     discountPercent: 0,
     /** Points cashback: every `cashbackEvery` spend → `cashbackPoints`. 0 = none. */
-    cashbackEvery: 0,
-    cashbackPoints: 0,
-    cashbackBonusDays: [],
-    cashbackBonusMultiplier: 1,
-    description: "入會會員。",
+    cashbackEvery: 100,
+    cashbackPoints: 1,
+    /** Taipei weekdays (0=Sun … 6=Sat) when cashback points are multiplied. */
+    cashbackBonusWeekdays: [4],
+    cashbackBonusMultiplier: 2,
+    description: "註冊即為一般會員。",
     /** Welcome coupon, issued once on join. */
-    joinGift: 20,
+    joinGift: 50,
     perks: [],
   },
   {
@@ -28,13 +43,13 @@ const VIP_DEFS = [
     name: "金卡",
     slug: "gold",
     rank: 2,
-    minSpend: 3500,
-    retainSpend: 3000,
+    minSpend: 4888,
+    singleSpend: 2888,
+    retainSpend: 4888,
     discountPercent: 0,
-    cashbackEvery: 300,
+    cashbackEvery: 100,
     cashbackPoints: 1,
-    /** Taipei calendar days when cashback points are multiplied. */
-    cashbackBonusDays: [10],
+    cashbackBonusWeekdays: [4],
     cashbackBonusMultiplier: 2,
     /** Coupon issued once when the member reaches this tier. */
     upgradeGift: 100,
@@ -42,8 +57,11 @@ const VIP_DEFS = [
     birthdayGift: 100,
     /** Where the birthday line sits in the member-facing benefit list. */
     birthdayGiftAt: "after",
-    perksBeforePoints: ["用品類最低 85 折起（活體、餌料除外）"],
-    perksAfterPoints: ["寄宿動物一天折 50 元"],
+    perksBeforePoints: ["享有會員價"],
+    perksAfterPoints: [
+      "寄宿動物一天折 50 元",
+      "根據消費品項不定時發送折價券",
+    ],
   },
   {
     id: "6a96b19f24ebb49b9046b618",
@@ -51,20 +69,23 @@ const VIP_DEFS = [
     slug: "black",
     rank: 3,
     minSpend: 10000,
-    retainSpend: 8000,
+    singleSpend: 8888,
+    retainSpend: 10000,
     discountPercent: 0,
-    cashbackEvery: 200,
+    cashbackEvery: 100,
     cashbackPoints: 1,
-    cashbackBonusDays: [10, 20],
-    cashbackBonusMultiplier: 2,
-    upgradeGift: 300,
-    birthdayGift: 300,
-    birthdayGiftAt: "before",
-    perksBeforePoints: ["用品類 最低 75 折起（活體、餌料除外）"],
+    cashbackBonusWeekdays: [4],
+    cashbackBonusMultiplier: 3,
+    upgradeGift: 200,
+    birthdayGift: 200,
+    birthdayGiftAt: "after",
+    perksBeforePoints: ["享有會員價"],
     perksAfterPoints: [
-      "寄宿動物前3天免費 (一年 2 次)",
-      "黑卡專屬社群：搶先解鎖稀有物種預購權與專屬特惠，與資深玩家深度交流",
+      "一年內寄宿動物 5 天免費",
+      "黑卡專屬社群（稀有物種預購權、專屬特惠、玩家交流）",
       "不定期提供品牌活動",
+      "根據消費品項不定時發送折價券",
+      "寵物生日回娘家（每年生日可領一份）",
     ],
   },
 ];
@@ -91,20 +112,42 @@ function previousPaidTier(def) {
   );
 }
 
+function qualifiesBySpend(vip, yearSpend = 0, maxSingle = 0) {
+  const year = Math.max(0, Number(yearSpend) || 0);
+  const single = Math.max(0, Number(maxSingle) || 0);
+  const minSpend = Number(vip?.minSpend) || 0;
+  const singleSpend = Number(vip?.singleSpend) || 0;
+  if (minSpend > 0 && year >= minSpend) return true;
+  if (singleSpend > 0 && single >= singleSpend) return true;
+  return minSpend <= 0 && singleSpend <= 0 && (vip?.rank || 0) <= 1;
+}
+
 /** Upgrade / retain lines. Numbers come from the tier fields. */
 export function vipSpendLines(vip, lower = null) {
-  if (!vip || !(Number(vip.minSpend) > 0)) return [];
-  const lines = [
-    `近一年累積消費滿 ${formatMoney(vip.minSpend)} 元升等`,
-    `會級期間消費滿 ${formatMoney(vip.retainSpend)} 元保留${vip.name}`,
-  ];
+  if (!vip) return [];
+  const hasSingle = Number(vip.singleSpend) > 0;
+  const hasYear = Number(vip.minSpend) > 0;
+  if (!hasSingle && !hasYear) return [];
+
+  const lines = [];
+  if (hasSingle) {
+    lines.push(`單筆消費滿 ${formatMoney(vip.singleSpend)} 元升等`);
+  }
+  if (hasYear) {
+    lines.push(`近一年累積消費滿 ${formatMoney(vip.minSpend)} 元升等`);
+  }
+  if (!(Number(vip.retainSpend) > 0)) return lines;
+
+  lines.push(`會級期間消費滿 ${formatMoney(vip.retainSpend)} 元保留${vip.name}`);
   if (lower && Number(vip.retainSpend) > Number(lower.retainSpend)) {
     lines.push(
       `會級期間滿 ${formatMoney(lower.retainSpend)} 元、未滿 ${formatMoney(vip.retainSpend)} 元改為${lower.name}`
     );
   }
   const floor =
-    lower && Number(lower.retainSpend) > 0 ? Number(lower.retainSpend) : Number(vip.retainSpend);
+    lower && Number(lower.retainSpend) > 0
+      ? Number(lower.retainSpend)
+      : Number(vip.retainSpend);
   lines.push(`會級期間未滿 ${formatMoney(floor)} 元，到期後退回一般會員`);
   return lines;
 }
@@ -114,13 +157,20 @@ function pointLines(vip) {
     return [];
   }
   const lines = [
-    `單筆消費滿 ${formatMoney(vip.cashbackEvery)} 元，點數回饋 ${vip.cashbackPoints} 點`,
+    `單筆消費滿 ${formatMoney(vip.cashbackEvery)} 元回饋 ${vip.cashbackPoints} 點`,
     `${POINT_YUAN} 點對應 ${POINT_YUAN} 元`,
   ];
-  const days = Array.isArray(vip.cashbackBonusDays) ? vip.cashbackBonusDays : [];
+  const weekdays = Array.isArray(vip.cashbackBonusWeekdays)
+    ? vip.cashbackBonusWeekdays.map(Number)
+    : [];
   const multiplier = Number(vip.cashbackBonusMultiplier) || 1;
-  if (days.length && multiplier > 1) {
-    lines.push(`每月 ${days.join("、")} 號，點數 ${multiplier} 倍送`);
+  if (weekdays.length && multiplier > 1) {
+    const labels = weekdays
+      .map((day) => WEEKDAY_LABELS[day] || "")
+      .filter(Boolean);
+    if (labels.length) {
+      lines.push(`每${labels.join("、")} 點數 ${multiplier} 倍送`);
+    }
   }
   return lines;
 }
@@ -131,13 +181,16 @@ function decorateVip(def) {
   const before = [...(def.perksBeforePoints || [])];
   const after = [...(def.perksAfterPoints || [])];
   const perks = [...(def.perks || [])];
+  if (Number(def.upgradeGift) > 0) {
+    before.push(`${def.name}升等禮 ${formatMoney(def.upgradeGift)} 元優惠券`);
+  }
   if (Number(def.birthdayGift) > 0) {
     const line = `生日禮 ${formatMoney(def.birthdayGift)} 元優惠券`;
     if (def.birthdayGiftAt === "before") before.push(line);
     else after.unshift(line);
   }
   if (Number(def.joinGift) > 0) {
-    perks.unshift(`首次註冊即享 ${formatMoney(def.joinGift)}元折價券`);
+    perks.unshift(`註冊即享 ${formatMoney(def.joinGift)}元 優惠券`);
   }
   const benefits = [...before, ...pointLines(def), ...after, ...perks];
   const description = rules.length
@@ -147,6 +200,17 @@ function decorateVip(def) {
 }
 
 export const VIPS = VIP_DEFS.map(decorateVip);
+
+function upgradeThresholdCopy(vip) {
+  const parts = [];
+  if (Number(vip.singleSpend) > 0) {
+    parts.push(`單筆消費滿 ${formatMoney(vip.singleSpend)} 元`);
+  }
+  if (Number(vip.minSpend) > 0) {
+    parts.push(`近一年累積消費滿 ${formatMoney(vip.minSpend)} 元`);
+  }
+  return parts.join("或");
+}
 
 /** Join / upgrade / birthday coupons. Amounts and expiry come from this file. */
 export function vipGiftPromotions() {
@@ -167,11 +231,12 @@ export function vipGiftPromotions() {
         couponName: `入會禮｜折抵 $${formatMoney(amount)}`,
         couponDescription: "歡迎加入水手！新會員註冊即贈，無低消。",
         promotionName: "入會禮",
-        promotionDescription: `首次以 LINE 加入會員時自動發放 ${formatMoney(amount)} 元優惠券。`,
+        promotionDescription: `註冊成為會員時自動發放 ${formatMoney(amount)} 元優惠券。`,
       });
     }
     if (Number(vip.upgradeGift) > 0) {
       const amount = Number(vip.upgradeGift);
+      const threshold = upgradeThresholdCopy(vip);
       push({
         key: `upgrade-${vip.slug}`,
         type: "upgrade",
@@ -179,7 +244,7 @@ export function vipGiftPromotions() {
         couponName: `${vip.name}升等禮｜折抵 $${formatMoney(amount)}`,
         couponDescription: `升等至${vip.name}時發放，每個等級一次。`,
         promotionName: `${vip.name}升等禮`,
-        promotionDescription: `近一年累積消費滿 ${formatMoney(vip.minSpend)} 元升等${vip.name}時發放 ${formatMoney(amount)} 元優惠券。`,
+        promotionDescription: `${threshold}升等${vip.name}時發放 ${formatMoney(amount)} 元優惠券。`,
       });
     }
     if (Number(vip.birthdayGift) > 0) {
@@ -268,12 +333,13 @@ export function toVipJSON(vip) {
     slug: vip.slug || "",
     rank: vip.rank ?? 0,
     minSpend: vip.minSpend ?? 0,
+    singleSpend: vip.singleSpend ?? 0,
     retainSpend: vip.retainSpend ?? 0,
     discountPercent: vip.discountPercent ?? 0,
     cashbackEvery: vip.cashbackEvery ?? 0,
     cashbackPoints: vip.cashbackPoints ?? 0,
-    cashbackBonusDays: Array.isArray(vip.cashbackBonusDays)
-      ? vip.cashbackBonusDays.map(Number)
+    cashbackBonusWeekdays: Array.isArray(vip.cashbackBonusWeekdays)
+      ? vip.cashbackBonusWeekdays.map(Number)
       : [],
     cashbackBonusMultiplier: vip.cashbackBonusMultiplier ?? 1,
     joinGift: vip.joinGift ?? 0,
@@ -329,15 +395,27 @@ export function taipeiDayOfMonth(at) {
   return Number.isInteger(day) ? day : null;
 }
 
-/** 2 on a tier's bonus day, otherwise 1. No date means no bonus. */
+/** Weekday in Taipei (0=Sun … 6=Sat). Null when `at` is missing or invalid. */
+export function taipeiWeekday(at) {
+  const date = at ? new Date(at) : null;
+  if (!date || Number.isNaN(date.getTime())) return null;
+  const label = new Intl.DateTimeFormat("en-US", {
+    timeZone: CASHBACK_TIME_ZONE,
+    weekday: "short",
+  }).format(date);
+  const weekday = WEEKDAY_SHORT[label];
+  return Number.isInteger(weekday) ? weekday : null;
+}
+
+/** Multiplier on a tier's bonus weekday, otherwise 1. No date means no bonus. */
 export function cashbackBonusMultiplier(vip, at) {
   const multiplier = Number(vip?.cashbackBonusMultiplier) || 1;
-  const days = Array.isArray(vip?.cashbackBonusDays)
-    ? vip.cashbackBonusDays.map(Number)
+  const weekdays = Array.isArray(vip?.cashbackBonusWeekdays)
+    ? vip.cashbackBonusWeekdays.map(Number)
     : [];
-  if (multiplier <= 1 || !days.length) return 1;
-  const day = taipeiDayOfMonth(at);
-  if (!days.includes(day)) return 1;
+  if (multiplier <= 1 || !weekdays.length) return 1;
+  const weekday = taipeiWeekday(at);
+  if (!weekdays.includes(weekday)) return 1;
   return multiplier;
 }
 
@@ -349,6 +427,16 @@ export function calcCashbackPoints(vip, spendAmount, at) {
   if (every <= 0 || points <= 0 || amount < every) return 0;
   const base = Math.floor(amount / every) * points;
   return base * cashbackBonusMultiplier(vip, at);
+}
+
+/** Highest VIP tier unlocked by rolling-year spend and/or max single purchase. */
+export function vipForSpend(spend = 0, maxSingle = 0) {
+  const sorted = [...VIPS].sort(
+    (a, b) => b.rank - a.rank || b.minSpend - a.minSpend
+  );
+  const vip =
+    sorted.find((item) => qualifiesBySpend(item, spend, maxSingle)) || VIPS[0];
+  return requireVip(vip.id);
 }
 
 /** Legacy helper. Daily VIP sync no longer keeps gold for 3 years. */

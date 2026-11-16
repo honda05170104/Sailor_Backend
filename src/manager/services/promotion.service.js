@@ -298,46 +298,55 @@ export function orderHasPosLegacyRebate(order) {
   );
 }
 
-const GOLD_MEMBERSHIP_MS = 365 * 24 * 60 * 60 * 1000;
+const LEGACY_REBATE_MEMBERSHIP_MS = 365 * 24 * 60 * 60 * 1000;
 
-/** Raise a legacy-rebate member to gold. Black (and gold) stay as they are. */
-export async function promoteLegacyMemberToGold(user, { from = new Date() } = {}) {
-  const gold = requireVip(getVipBySlug('gold')?.id);
-  if (!gold) return 'skipped';
+/**
+ * Raise a legacy-rebate member to black.
+ * Already-black members stay as they are.
+ */
+export async function promoteLegacyMemberToBlack(user, { from = new Date() } = {}) {
+  const black = requireVip(getVipBySlug('black')?.id);
+  if (!black) return 'skipped';
 
   const current = getVipById(user.vip);
-  if ((current?.rank || 0) >= (gold.rank || 2)) return 'already';
+  if ((current?.rank || 0) >= (black.rank || 3)) return 'already';
 
   const start = new Date(from);
   const vipExpiresAt = new Date(
-    (Number.isNaN(start.getTime()) ? Date.now() : start.getTime()) + GOLD_MEMBERSHIP_MS
+    (Number.isNaN(start.getTime()) ? Date.now() : start.getTime()) +
+      LEGACY_REBATE_MEMBERSHIP_MS
   );
   await User.updateOne(
     { _id: user._id },
     {
       $set: {
-        vip: gold._id,
+        vip: black._id,
         vipExpiresAt,
         vipExpiresForever: false,
         vipExpiresManual: false,
       },
     }
   );
-  user.vip = gold._id;
+  user.vip = black._id;
   user.vipExpiresAt = vipExpiresAt;
   user.vipExpiresForever = false;
   user.vipExpiresManual = false;
   return 'upgraded';
 }
 
+/** @deprecated Use promoteLegacyMemberToBlack — legacy rebate now maps to black. */
+export async function promoteLegacyMemberToGold(user, opts) {
+  return promoteLegacyMemberToBlack(user, opts);
+}
+
 /**
- * Transaction contains 舊會員回饋金: become gold, and record the 100-yuan rebate as used.
+ * Transaction contains 舊會員回饋金: become black, and record the 100-yuan rebate as used.
  * Once per member. An existing unused rebate coupon is redeemed instead of issuing another.
  */
 export async function redeemPosLegacyRebate(user, { usedAt = new Date() } = {}) {
   if (!user?._id) return null;
 
-  const vip = await promoteLegacyMemberToGold(user, { from: usedAt });
+  const vip = await promoteLegacyMemberToBlack(user, { from: usedAt });
 
   const coupon = await Coupon.findOne({
     name: LEGACY_REBATE_COUPON_NAME,
@@ -425,24 +434,40 @@ export async function backfillPosLegacyRebates() {
   return backfillPosItem(POS_LEGACY_REBATE_ITEM, redeemPosLegacyRebate);
 }
 
-/** Anyone holding 舊會員回饋 is at least gold. Does not change coupon status. */
+/**
+ * Anyone on the legacy-rebate path (舊會員回饋券 or POS 舊會員回饋金) becomes black.
+ * Does not change coupon status or issue black upgrade gifts.
+ */
 export async function promoteLegacyRebateHolders() {
-  const coupon = await Coupon.findOne({ name: LEGACY_REBATE_COUPON_NAME });
-  if (!coupon) return [];
+  const userIds = new Set();
 
-  const userIds = await UserCoupon.distinct('user', { coupon: coupon._id });
+  const coupon = await Coupon.findOne({ name: LEGACY_REBATE_COUPON_NAME });
+  if (coupon) {
+    for (const id of await UserCoupon.distinct('user', { coupon: coupon._id })) {
+      if (id) userIds.add(String(id));
+    }
+  }
+
+  for (const id of await Transaction.distinct('user', {
+    'items.name': POS_LEGACY_REBATE_ITEM,
+  })) {
+    if (id) userIds.add(String(id));
+  }
+
   const results = [];
   for (const id of userIds) {
     const user = await User.findById(id);
     if (!user) {
-      results.push({ userId: String(id), vip: 'missing-user' });
+      results.push({ userId: id, vip: 'missing-user' });
       continue;
     }
-    const vip = await promoteLegacyMemberToGold(user);
+    const prev = getVipById(user.vip);
+    const vip = await promoteLegacyMemberToBlack(user);
     results.push({
       userId: String(user._id),
       mobile: user.mobile || '',
       displayName: user.displayName || '',
+      prevVip: prev?.slug || '',
       vip,
     });
   }

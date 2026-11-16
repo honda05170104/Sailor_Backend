@@ -15,6 +15,7 @@ import {
   vipRetainedBySpend,
   calcCashbackPoints,
   cashbackBonusMultiplier,
+  vipForSpend,
 } from '../data/vips.js';
 import { issueUpgradeGift } from '../manager/services/promotion.service.js';
 import {
@@ -37,6 +38,7 @@ export {
   getGoldProtectExpiresAt,
   vipRetainedBySpend,
   calcCashbackPoints,
+  vipForSpend,
 };
 
 /** Rolling window used for VIP tier thresholds. */
@@ -110,9 +112,45 @@ export async function getYearSpend(userId, { now = new Date() } = {}) {
  * VIP tier earned from rolling spend as of a point in time (txn day).
  * Used for cashback — no upgrade side-effects.
  */
+/** Largest single purchase in the rolling VIP window (or lifetime if no window). */
+export async function getMaxSingleSpend(
+  userId,
+  { since = null, until = null } = {}
+) {
+  if (!userId) return 0;
+  const userOid = new mongoose.Types.ObjectId(String(userId));
+  const match = {
+    user: userOid,
+    source: { $nin: NON_SPEND_TRANSACTION_SOURCES },
+    totalAmount: { $gt: 0 },
+  };
+  if (since || until) {
+    const saleTime = { $ifNull: ['$orderedAt', '$createdAt'] };
+    const range = [];
+    if (since) range.push({ $gte: [saleTime, since] });
+    if (until) range.push({ $lte: [saleTime, until] });
+    match.$expr = range.length === 1 ? range[0] : { $and: range };
+  }
+
+  const rows = await Transaction.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: null,
+        max: { $max: '$totalAmount' },
+      },
+    },
+  ]);
+  return Math.max(0, Number(rows[0]?.max) || 0);
+}
+
 export async function vipAtDate(userId, at = new Date()) {
   const yearSpend = await getYearSpend(userId, { now: at });
-  return vipForSpend(yearSpend);
+  const maxSingle = await getMaxSingleSpend(userId, {
+    since: vipSpendSinceDate(at),
+    until: at,
+  });
+  return vipForSpend(yearSpend, maxSingle);
 }
 
 export async function vipProgress(user) {
@@ -259,16 +297,9 @@ async function resolveExpiredMembership(userId, prevVip, earned, now, expiresAt)
   };
 }
 
-export async function vipForSpend(spend = 0) {
-  const amount = Math.max(0, Number(spend) || 0);
-  const sorted = [...VIPS].sort((a, b) => b.rank - a.rank || b.minSpend - a.minSpend);
-  const vip = sorted.find((item) => amount >= item.minSpend) || VIPS[0];
-  return requireVip(vip.id);
-}
-
 /**
  * Sync one member.
- * Rolling 1-year spend can raise the tier at any time.
+ * Rolling 1-year spend or a single qualifying purchase can raise the tier.
  * A paid tier is held until vipExpiresAt. On that date, spend inside the
  * membership year decides whether it is kept, lowered, or cleared.
  */
@@ -280,8 +311,12 @@ export async function syncUserVip(user) {
   user.totalSpend = lifetime;
 
   const yearSpend = await getYearSpend(user._id, { now });
+  const maxSingle = await getMaxSingleSpend(user._id, {
+    since: vipSpendSinceDate(now),
+    until: now,
+  });
   const prevVip = getVipById(user.vip);
-  const earned = await vipForSpend(yearSpend);
+  const earned = vipForSpend(yearSpend, maxSingle);
   const prevId = String(prevVip?.id || user.vip || '');
   const prevRank = prevVip?.rank || 0;
   const earnedRank = earned?.rank || 0;

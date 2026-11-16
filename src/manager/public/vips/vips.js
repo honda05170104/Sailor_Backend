@@ -34,11 +34,14 @@
             ? ""
             : `<p class="muted">${escapeHtml(vip.description || "—")}</p>`;
 
+        const single = Number(vip.singleSpend) || 0;
         const retain = Number(vip.retainSpend) || 0;
         const spendLabel =
-          retain > 0
-            ? `升等 $${formatMoney(vip.minSpend)} · 保留 $${formatMoney(retain)}`
-            : `門檻 $${formatMoney(vip.minSpend)}`;
+          single > 0
+            ? `單筆 $${formatMoney(single)} · 年累 $${formatMoney(vip.minSpend)}`
+            : retain > 0
+              ? `升等 $${formatMoney(vip.minSpend)} · 保留 $${formatMoney(retain)}`
+              : `門檻 $${formatMoney(vip.minSpend)}`;
 
         return `<article class="vip-rule-card">
           <div class="vip-rule-head">
