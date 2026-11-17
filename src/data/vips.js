@@ -160,8 +160,7 @@ function pointLines(vip) {
     return [];
   }
   const lines = [
-    `單筆消費滿 ${formatMoney(vip.cashbackEvery)} 元回饋 ${vip.cashbackPoints} 點`,
-    `${POINT_YUAN} 點對應 ${POINT_YUAN} 元`,
+    `單筆消費滿 ${formatMoney(vip.cashbackEvery)} 元回饋 ${vip.cashbackPoints} 點（${POINT_YUAN} 點折抵 ${POINT_YUAN} 元）`,
   ];
   const weekdays = Array.isArray(vip.cashbackBonusWeekdays)
     ? vip.cashbackBonusWeekdays.map(Number)
