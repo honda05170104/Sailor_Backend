@@ -5,6 +5,7 @@ import ImportedOrder from '../../models/ImportedOrder.js';
 import OrderImport from '../../models/OrderImport.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
+import { PosItem, isPosItem } from '../../constants/posItems.js';
 import {
   csvToObjects,
   normalizeMobile,
@@ -152,13 +153,11 @@ async function saveImportedOrder(branchId, order, importId) {
   }
 }
 
-const POINT_DISCOUNT_ITEM = '點數折扣';
-
 /** Signed point change from POS「點數折扣」lines. Negative deducts, positive adds. */
 function pointDiscountDelta(items) {
   let delta = 0;
   for (const item of items || []) {
-    if (String(item?.name || '').trim() !== POINT_DISCOUNT_ITEM) continue;
+    if (!isPosItem(item, PosItem.POINT_DISCOUNT)) continue;
     const subtotal = Number(item.subtotal);
     if (Number.isFinite(subtotal)) {
       delta += subtotal;

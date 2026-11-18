@@ -7,6 +7,7 @@ import UserCoupon from '../../models/UserCoupon.js';
 import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
 import { ErrorCode } from '../../constants/codes.js';
+import { PosItem, orderHasPosItem } from '../../constants/posItems.js';
 import { snapshotCoupon, resolveCouponExpiresAt } from '../../services/coupons.js';
 import { saleAt } from '../../services/transactions.js';
 import {
@@ -196,13 +197,8 @@ export async function issueJoinGift(user) {
   return tryClaimAndIssue(user, promotion, `join:${promotion.key}`);
 }
 
-/** POS line that means the welcome coupon was already used in store. */
-export const POS_JOIN_GIFT_ITEM = '新客入會禮';
-
 export function orderHasPosJoinGift(order) {
-  return (order?.items || []).some(
-    (item) => String(item?.name || '').trim() === POS_JOIN_GIFT_ITEM
-  );
+  return orderHasPosItem(order, PosItem.JOIN_GIFT);
 }
 
 async function findJoinPromotion() {
@@ -288,13 +284,8 @@ export async function redeemPosJoinGift(user, { usedAt = new Date() } = {}) {
   return { action, coupon: issued };
 }
 
-/** POS line that upgrades a legacy member to black. */
-export const POS_LEGACY_REBATE_ITEM = '舊會員轉黑卡';
-
 export function orderHasPosLegacyRebate(order) {
-  return (order?.items || []).some(
-    (item) => String(item?.name || '').trim() === POS_LEGACY_REBATE_ITEM
-  );
+  return orderHasPosItem(order, PosItem.LEGACY_TO_BLACK);
 }
 
 const LEGACY_REBATE_MEMBERSHIP_MS = 365 * 24 * 60 * 60 * 1000;
@@ -392,12 +383,12 @@ async function backfillPosItem(itemName, redeem) {
 
 /** One welcome-coupon redemption per member who already has the POS line. */
 export async function backfillPosJoinGifts() {
-  return backfillPosItem(POS_JOIN_GIFT_ITEM, redeemPosJoinGift);
+  return backfillPosItem(PosItem.JOIN_GIFT, redeemPosJoinGift);
 }
 
 /** One legacy-rebate redemption per member who already has the POS line. */
 export async function backfillPosLegacyRebates() {
-  return backfillPosItem(POS_LEGACY_REBATE_ITEM, redeemPosLegacyRebate);
+  return backfillPosItem(PosItem.LEGACY_TO_BLACK, redeemPosLegacyRebate);
 }
 
 /**
@@ -406,7 +397,7 @@ export async function backfillPosLegacyRebates() {
  */
 export async function promoteLegacyRebateHolders() {
   const userIds = await Transaction.distinct('user', {
-    'items.name': POS_LEGACY_REBATE_ITEM,
+    'items.name': PosItem.LEGACY_TO_BLACK,
   });
 
   const results = [];
